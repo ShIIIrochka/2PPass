@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "cryptography>=46.0.3",
     "django>=5.2.7",
 ]
 
@@ -21,7 +22,7 @@ line-length = 80
 exclude = ["*__init__.py", "migrations/*"]
 
 [tool.ruff.lint]
-extend-select = ["UP", "D"]
+extend-select = ["UP"]
 fixable = ["ALL"]
 ignore = ["UP009", "D100", "D206"]
 
