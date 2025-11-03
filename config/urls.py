@@ -18,7 +18,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from passwords.admin.admin import user_admin_site
+from passwords.admin.base import user_admin_site
 
 
 urlpatterns = [
