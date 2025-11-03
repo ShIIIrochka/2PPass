@@ -28,7 +28,6 @@ class PasswordAdmin(admin.ModelAdmin):
 	list_display = ("title", "url", "groups_list")
 	exclude = ("password",)
 	search_fields = ("title", "url")
-	readonly_fields = ("masked_password", "copy_button")
 
 	groups_list = groups_list
 	masked_password = masked_password
@@ -51,6 +50,12 @@ class PasswordAdmin(admin.ModelAdmin):
 		if request.user.is_superuser:
 			return qs
 		return qs.filter(groups__members=request.user).distinct()
+
+	def get_readonly_fields(self, request, obj=None):
+		readonly = list(super().get_readonly_fields(request, obj))
+		if obj:
+			readonly += ["masked_password", "copy_button"]
+		return readonly
 
 	def get_urls(self):
 		urls = super().get_urls()
