@@ -14,7 +14,9 @@ class UserAdminAuthenticationForm(AdminAuthenticationForm):
 
 
 class UserAdminSite(AdminSite):
-	site_header = "Passwords — User Console"
+	site_header = "Password Manager"
+	site_title = "Passwords Manager"
+	index_title = "Home"
 	login_form = UserAdminAuthenticationForm
 
 	def has_permission(self, request):

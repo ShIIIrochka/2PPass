@@ -23,5 +23,5 @@ from passwords.admin.user import user_admin_site
 
 urlpatterns = [
 	path("admin/", admin.site.urls),
-	path("console/", user_admin_site.urls),
+	path("", user_admin_site.urls),
 ]
