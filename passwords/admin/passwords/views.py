@@ -3,7 +3,7 @@
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
-from passwords.admin.password.permissions import can_view_password
+from passwords.admin.passwords.permissions import can_view_password
 from passwords.models.access_log import AccessLog
 from passwords.models.password import Password
 from passwords.utils.client_id_getter import get_client_ip

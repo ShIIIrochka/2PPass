@@ -5,19 +5,19 @@ from django.urls import path
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 
-from passwords.admin.password.actions import log_access
-from passwords.admin.password.display import (
+from passwords.admin.passwords.actions import log_access
+from passwords.admin.passwords.display import (
 	copy_button,
 	groups_list,
 	masked_password,
 )
-from passwords.admin.password.permissions import (
+from passwords.admin.passwords.permissions import (
 	can_add_password,
 	can_change_password,
 	can_delete_password,
 	can_view_password,
 )
-from passwords.admin.password.views import reveal_view
+from passwords.admin.passwords.views import reveal_view
 from passwords.forms.password_admin import PasswordAdminForm
 from passwords.models.password import Password
 
