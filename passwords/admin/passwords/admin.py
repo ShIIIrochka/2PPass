@@ -19,10 +19,8 @@ from passwords.admin.passwords.permissions import (
 )
 from passwords.admin.passwords.views import reveal_view
 from passwords.forms.password_admin import PasswordAdminForm
-from passwords.models.password import Password
 
 
-@admin.register(Password)
 class PasswordAdmin(admin.ModelAdmin):
 	form = PasswordAdminForm
 	list_display = ("title", "url", "groups_list")
@@ -32,6 +30,20 @@ class PasswordAdmin(admin.ModelAdmin):
 	groups_list = groups_list
 	masked_password = masked_password
 	copy_button = copy_button
+
+	actions = ["move_to_trash", "restore_from_trash", "delete_forever"]
+
+	@admin.action(description="Переместить в корзину")
+	def move_to_trash(self, request, queryset):
+		queryset.update(in_trash=True)
+
+	@admin.action(description="Восстановить из корзины")
+	def restore_from_trash(self, request, queryset):
+		queryset.update(in_trash=False)
+
+	@admin.action(description="Удалить навсегда")
+	def delete_forever(self, request, queryset):
+		queryset.delete()
 
 	def has_view_permission(self, request, obj=None):
 		return can_view_password(request.user, obj)

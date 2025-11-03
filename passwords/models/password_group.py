@@ -10,7 +10,9 @@ class PasswordGroup(models.Model):
 	name = models.CharField(max_length=255, unique=True)
 	description = models.TextField(blank=True, null=True)
 	passwords = models.ManyToManyField(
-		"passwords.Password", related_name="groups", blank=True
+		"passwords.Password",
+		related_name="groups",
+		blank=True,
 	)
 	members = models.ManyToManyField(
 		settings.AUTH_USER_MODEL,

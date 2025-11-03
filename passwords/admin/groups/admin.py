@@ -6,7 +6,6 @@ from passwords.admin.groups.inlines import GroupMembershipInline
 from passwords.models.password_group import PasswordGroup
 
 
-@admin.register(PasswordGroup)
 class PasswordGroupAdmin(admin.ModelAdmin):
 	list_display = ("name", "description", "members_list")
 	inlines = [GroupMembershipInline]

@@ -24,7 +24,7 @@ class AccessLog(models.Model):
 	)
 	password = models.ForeignKey(
 		"passwords.Password",
-		on_delete=models.DO_NOTHING,
+		on_delete=models.CASCADE,
 		related_name="access_logs",
 	)
 	action = models.CharField(max_length=16, choices=ACTION_CHOICES)
