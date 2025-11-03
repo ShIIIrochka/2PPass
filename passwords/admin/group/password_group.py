@@ -2,7 +2,7 @@
 
 from django.contrib import admin
 
-from passwords.admin.inlines import GroupMembershipInline
+from passwords.admin.group.inlines import GroupMembershipInline
 from passwords.models.password_group import PasswordGroup
 
 
