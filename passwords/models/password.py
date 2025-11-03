@@ -40,5 +40,4 @@ class Password(models.Model):
 class PasswordInTrash(Password):
 	class Meta:
 		proxy = True
-		verbose_name = "Пароль (корзина)"
-		verbose_name_plural = "Корзина"
+		verbose_name_plural = "Trash"
