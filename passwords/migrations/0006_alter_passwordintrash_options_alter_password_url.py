@@ -4,19 +4,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+	dependencies = [
+		("passwords", "0005_alter_accesslog_password"),
+	]
 
-    dependencies = [
-        ('passwords', '0005_alter_accesslog_password'),
-    ]
-
-    operations = [
-        migrations.AlterModelOptions(
-            name='passwordintrash',
-            options={'verbose_name_plural': 'Trash'},
-        ),
-        migrations.AlterField(
-            model_name='password',
-            name='url',
-            field=models.CharField(blank=True, max_length=255, null=True),
-        ),
-    ]
+	operations = [
+		migrations.AlterModelOptions(
+			name="passwordintrash",
+			options={"verbose_name_plural": "Trash"},
+		),
+		migrations.AlterField(
+			model_name="password",
+			name="url",
+			field=models.CharField(blank=True, max_length=255, null=True),
+		),
+	]

@@ -4,28 +4,26 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+	dependencies = [
+		("passwords", "0003_alter_password_url"),
+	]
 
-    dependencies = [
-        ('passwords', '0003_alter_password_url'),
-    ]
-
-    operations = [
-        migrations.CreateModel(
-            name='PasswordInTrash',
-            fields=[
-            ],
-            options={
-                'verbose_name': 'Пароль (корзина)',
-                'verbose_name_plural': 'Корзина',
-                'proxy': True,
-                'indexes': [],
-                'constraints': [],
-            },
-            bases=('passwords.password',),
-        ),
-        migrations.AddField(
-            model_name='password',
-            name='in_trash',
-            field=models.BooleanField(default=False),
-        ),
-    ]
+	operations = [
+		migrations.CreateModel(
+			name="PasswordInTrash",
+			fields=[],
+			options={
+				"verbose_name": "Пароль (корзина)",
+				"verbose_name_plural": "Корзина",
+				"proxy": True,
+				"indexes": [],
+				"constraints": [],
+			},
+			bases=("passwords.password",),
+		),
+		migrations.AddField(
+			model_name="password",
+			name="in_trash",
+			field=models.BooleanField(default=False),
+		),
+	]
