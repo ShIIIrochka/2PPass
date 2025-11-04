@@ -22,12 +22,6 @@ def encrypt_password(plaintext: str) -> str:
 def decrypt_password(token: str) -> str:
 	f: Fernet = _get_fernet()
 	try:
-		from icecream import ic
-
-		ic("try")
 		return f.decrypt(token.encode("utf-8")).decode("utf-8")
 	except InvalidToken:
-		from icecream import ic
-
-		ic("except")
 		raise ValueError("Invalid encryption token")
