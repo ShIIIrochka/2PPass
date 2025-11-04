@@ -14,8 +14,8 @@ class GroupMembershipInline(admin.TabularInline):
 	raw_id_fields = ("user",)
 	show_change_link = True
 
-	verbose_name = _("Участник группы")
-	verbose_name_plural = _("Участники группы")
+	verbose_name = _("Member")
+	verbose_name_plural = _("Members")
 
 	ordering = ("user__username",)
 

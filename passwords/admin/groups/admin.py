@@ -4,7 +4,6 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
 from passwords.admin.groups.inlines import GroupMembershipInline
-from passwords.models.password_group import PasswordGroup
 
 
 class PasswordGroupAdmin(admin.ModelAdmin):
@@ -22,5 +21,5 @@ class PasswordGroupAdmin(admin.ModelAdmin):
 			f"{m.user} ({m.get_role_display()})" for m in obj.memberships.all()
 		)
 
-	members_list.short_description = _("Участники")
+	members_list.short_description = _("Members")
 	members_list.admin_order_field = None

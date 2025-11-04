@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Optional
 
-from django.shortcuts import get_object_or_404
 from django.http import HttpRequest
+from django.shortcuts import get_object_or_404
 
 from passwords.models.access_log import AccessLog
 from passwords.models.password import Password
 from passwords.utils.client_id_getter import get_client_ip
+
 
 ACTION_MAP = {
 	"create": AccessLog.ACTION_CREATE,
@@ -28,7 +28,7 @@ def _resolve_password(
 
 
 def log_access(
-	request: HttpRequest, obj_or_id: Union[Password, int, str], action: str
+	request: HttpRequest, obj_or_id: Password | int | str, action: str
 ):
 	"""Создание записи AccessLog."""
 	try:
