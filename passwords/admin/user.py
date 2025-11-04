@@ -14,8 +14,8 @@ class UserAdminAuthenticationForm(AdminAuthenticationForm):
 
 
 class UserAdminSite(AdminSite):
-	site_header = "Password Manager"
-	site_title = "Passwords Manager"
+	site_header = "2PPass — Corporate password manager"
+	site_title = "2PPass"
 	index_title = "Home"
 	login_form = UserAdminAuthenticationForm
 
