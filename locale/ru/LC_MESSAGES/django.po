@@ -1,0 +1,146 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-11-04 15:55+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
+"(n%100>=11 && n%100<=14)? 2 : 3);\n"
+
+#: passwords/admin/__init__.py:15 passwords/admin/user.py:21
+msgid "2PPass — Corporate Password Manager"
+msgstr "2PPass — Corporate Password Manager"
+
+#: passwords/admin/__init__.py:16 passwords/admin/user.py:22
+msgid "2PPass"
+msgstr "2PPass"
+
+#: passwords/admin/__init__.py:17 passwords/admin/user.py:23
+msgid "Home"
+msgstr "Главная"
+
+#: passwords/admin/groups/admin.py:25 passwords/admin/groups/inlines.py:18
+msgid "Members"
+msgstr "Участники"
+
+#: passwords/admin/groups/inlines.py:17
+msgid "Member"
+msgstr "Участник"
+
+#: passwords/admin/passwords/admin.py:41 passwords/models/password.py:50
+#: passwords/models/password.py:51
+msgid "Trash"
+msgstr ""
+
+#: passwords/admin/passwords/admin.py:46
+msgid "Restore from trash"
+msgstr "Восстановить из корзины"
+
+#: passwords/admin/passwords/admin.py:51
+msgid "Delete forever"
+msgstr "Удалить навсегда"
+
+#: passwords/admin/passwords/display.py:14
+msgid "Groups"
+msgstr "Группы"
+
+#: passwords/admin/passwords/display.py:22
+msgid "Password (masked)"
+msgstr "Пароль (скрыт)"
+
+#: passwords/admin/passwords/display.py:57
+msgid "Actions"
+msgstr "Действия"
+
+#: passwords/admin/trash/admin.py:19
+msgid "Восстановить из корзины"
+msgstr "Восстановить из корзины"
+
+#: passwords/admin/trash/admin.py:24
+msgid "Удалить навсегда"
+msgstr "Удалить навсегда"
+
+#: passwords/admin/user.py:15
+msgid "Account is inactive."
+msgstr "Аккаунт неактивен."
+
+#: passwords/forms/password_admin.py:12
+msgid "Plain password"
+msgstr "Пароль"
+
+#: passwords/forms/password_admin.py:14
+msgid "Напишите новый пароль (оставьте пустым, чтобы не менять)"
+msgstr "Напишите новый пароль (оставьте пустым, чтобы не менять)"
+
+#: passwords/forms/password_admin.py:35
+msgid "Password required."
+msgstr "Пароль обязателен."
+
+#: passwords/models/access_log.py:39
+msgid "Access log"
+msgstr "Лог доступа"
+
+#: passwords/models/access_log.py:40
+msgid "Access logs"
+msgstr "Логи доступа"
+
+#: passwords/models/password.py:43
+#, fuzzy
+#| msgid "Password:"
+msgid "Password"
+msgstr "Пароль"
+
+#: passwords/models/password.py:44
+#, fuzzy
+#| msgid "Password:"
+msgid "Passwords"
+msgstr "Пароли"
+
+#: passwords/models/password_group.py:33
+#, fuzzy
+#| msgid "Password:"
+msgid "Password Group"
+msgstr "Группа паролей"
+
+#: passwords/models/password_group.py:34
+#, fuzzy
+#| msgid "Password required."
+msgid "Password Groups"
+msgstr "Группы паролей"
+
+#: passwords/models/password_group.py:62
+msgid "Group membership"
+msgstr "Членство в группах"
+
+#: passwords/models/password_group.py:63
+msgid "Group members"
+msgstr "Члены группы"
+
+#: passwords/templates/admin/passwords/password_reveal.html:4
+msgid "Reveal password"
+msgstr "Показать пароль"
+
+#: passwords/templates/admin/passwords/password_reveal.html:5
+msgid "URL:"
+msgstr "URL:"
+
+#: passwords/templates/admin/passwords/password_reveal.html:6
+msgid "Password:"
+msgstr "Пароль:"
+
+#: passwords/templates/admin/passwords/password_reveal.html:7
+msgid "Back"
+msgstr "Назад"
