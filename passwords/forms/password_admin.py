@@ -25,3 +25,12 @@ class PasswordAdminForm(forms.ModelForm):
 			instance.save()
 			self.save_m2m()
 		return instance
+
+	def clean(self):
+		cleaned_data = super().clean()
+		password_plain = cleaned_data.get("password_plain")
+
+		if self.instance.pk is None and not password_plain:
+			raise forms.ValidationError("Password required.")
+
+		return cleaned_data
