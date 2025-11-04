@@ -6,22 +6,6 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 
-def groups_list(self, obj: Any) -> str:
-	"""Список имён групп через запятую."""
-	return ", ".join(g.name for g in obj.groups.all())
-
-
-groups_list.short_description = _("Группы")
-
-
-def masked_password(self, obj: Any) -> str:
-	"""Скрытое представление пароля."""
-	return "••••••••"
-
-
-masked_password.short_description = _("Пароль (скрыт)")
-
-
 def copy_button(self, obj: Any) -> str:
 	"""Кнопка для копирования пароля в буфер обмена."""
 	pk = getattr(obj, "pk", None)
@@ -54,4 +38,4 @@ def copy_button(self, obj: Any) -> str:
 	)
 
 
-copy_button.short_description = _("Действия")
+copy_button.short_description = _("Actions")
