@@ -2,6 +2,9 @@
 
 from django.db import models
 from django.db.transaction import atomic
+from django.utils.translation import gettext_lazy as _
+
+from passwords.models.tag import Tag
 from passwords.utils.crypto import decrypt_password, encrypt_password
 
 
@@ -10,6 +13,7 @@ class Password(models.Model):
 	url = models.CharField(max_length=255, null=True, blank=True)
 	password = models.TextField()
 	note = models.TextField(blank=True, null=True)
+	tags = models.ManyToManyField(Tag, null=True, blank=True)
 	in_trash = models.BooleanField(default=False)
 
 	@atomic
@@ -36,8 +40,13 @@ class Password(models.Model):
 	def __str__(self) -> str:
 		return str(self.title)
 
+	class Meta:
+		verbose_name = _("Password")
+		verbose_name_plural = _("passwords")
+
 
 class PasswordInTrash(Password):
 	class Meta:
 		proxy = True
-		verbose_name_plural = "Trash"
+		verbose_name_plural = _("Trash")
+		verbose_name = _("Trash")
