@@ -12,8 +12,8 @@ from passwords.models.password import PasswordInTrash
 from passwords.admin.trash.admin import TrashAdmin
 from passwords.models.password_group import GroupMembership, PasswordGroup
 
-admin.site.site_header = 'Password Manager'
-admin.site.site_title = 'Password Manager'
+admin.site.site_header = '2PPass — Corporate password manager'
+admin.site.site_title = '2PPass'
 admin.site.index_title = 'Home'
 
 admin.site.register(GroupMembership)
