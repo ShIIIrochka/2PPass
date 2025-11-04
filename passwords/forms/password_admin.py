@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from django import forms
+from django.utils.translation import gettext_lazy as _
 
 from passwords.models.password import Password
 
@@ -8,9 +9,9 @@ from passwords.models.password import Password
 class PasswordAdminForm(forms.ModelForm):
 	password_plain = forms.CharField(
 		required=False,
-		label="Plain password",
+		label=_("Plain password"),
 		widget=forms.PasswordInput(render_value=False),
-		help_text="Введите новый пароль (оставьте пустым, чтобы не менять)",
+		help_text=_("Напишите новый пароль (оставьте пустым, чтобы не менять)"),
 	)
 
 	class Meta:
@@ -31,6 +32,6 @@ class PasswordAdminForm(forms.ModelForm):
 		password_plain = cleaned_data.get("password_plain")
 
 		if self.instance.pk is None and not password_plain:
-			raise forms.ValidationError("Password required.")
+			raise forms.ValidationError(_("Password required."))
 
 		return cleaned_data
