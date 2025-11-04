@@ -2,14 +2,15 @@
 #
 from typing import Any
 
+from django.conf import settings
 from django.contrib import admin
 from django.urls import path
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_protect
+from django.template.loader import render_to_string
 
 from passwords.admin.passwords.actions import log_access
-from passwords.admin.passwords.display import copy_button
 from passwords.admin.passwords.permissions import (
 	can_add_password,
 	can_change_password,
@@ -24,11 +25,10 @@ class PasswordAdmin(admin.ModelAdmin):
 	"""Админка для модели Password."""
 
 	form = PasswordAdminForm
-	list_display = ("title", "url", "get_groups", "get_tags")
+	list_display = ("title", "url", "get_groups", "get_tags", "copy_button")
 	exclude = ("password", "in_trash")
 	search_fields = ("title", "url", "tags")
 	ordering = ("title",)
-	copy_button = copy_button
 
 	actions = ["move_to_trash", "restore_from_trash", "delete_forever"]
 
@@ -66,6 +66,14 @@ class PasswordAdmin(admin.ModelAdmin):
 		return ", ".join(t.name for t in obj.tags.all())
 
 	get_tags.short_description = _("Tags")
+
+	def copy_button(self, obj: Any) -> str:
+		"""Рендер кнопки копирования с JS прямо через шаблон."""
+		if not obj.pk:
+			return ""
+		return render_to_string(settings.COPY_BUTTON_TEMPLATE, {"object": obj})
+
+	copy_button.short_description = _("Actions")
 
 	def has_view_permission(self, request, obj=None):
 		return can_view_password(request.user, obj)
