@@ -1,0 +1,25 @@
+{% load i18n %}
+<button type="button" class="button" onclick="copyPassword{{ object.pk }}()">
+    {% trans "Copy password" %}
+</button>
+
+<script>
+    function copyPassword{{ object.pk }}() {
+    	const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    	fetch("{% url 'admin:passwords_password_reveal' object.pk %}", {
+    		method: 'POST',
+    		headers: { 'X-CSRFToken': csrftoken },
+    	})
+    	.then(resp => resp.json())
+    	.then(data => {
+    		if (data.password) {
+    			navigator.clipboard.writeText(data.password);
+    			alert(gettext('Password copied!'));
+    		} else {
+    			alert(gettext('Password not found.'));
+    		}
+    	})
+    	.catch(() => alert(gettext('Something went wrong.')));
+    }
+</script>
