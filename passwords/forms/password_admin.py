@@ -11,7 +11,9 @@ class PasswordAdminForm(forms.ModelForm):
 		required=False,
 		label=_("Plain password"),
 		widget=forms.PasswordInput(render_value=False),
-		help_text=_("Напишите новый пароль (оставьте пустым, чтобы не менять)"),
+		help_text=_(
+			"Type a new password (leave empty to keep the current one)"
+		),
 	)
 
 	class Meta:

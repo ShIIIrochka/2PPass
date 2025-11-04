@@ -12,17 +12,15 @@ class UserAdminAuthenticationForm(AdminAuthenticationForm):
 
 	def confirm_login_allowed(self, user):
 		if not getattr(user, "is_active", False):
-			raise ValidationError(
-				_("Учетная запись не активна."), code="inactive"
-			)
+			raise ValidationError(_("Account is inactive."), code="inactive")
 
 
 class UserAdminSite(AdminSite):
 	"""Админ-сайт для обычных пользователей."""
 
-	site_header = _("2PPass — Корпоративный менеджер паролей")
+	site_header = _("2PPass — Corporate Password Manager")
 	site_title = _("2PPass")
-	index_title = _("Главная")
+	index_title = _("Home")
 	login_form = UserAdminAuthenticationForm
 
 	def has_permission(self, request):

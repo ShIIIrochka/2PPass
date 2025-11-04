@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class PasswordGroup(models.Model):
@@ -27,6 +28,10 @@ class PasswordGroup(models.Model):
 	def get_role_for_user(self, user):
 		membership = self.memberships.filter(user=user).first()
 		return membership.role if membership else None
+
+	class Meta:
+		verbose_name = _("Password Group")
+		verbose_name_plural = _("Password Groups")
 
 
 class GroupMembership(models.Model):
@@ -54,8 +59,8 @@ class GroupMembership(models.Model):
 
 	class Meta:
 		unique_together = ("user", "group")
-		verbose_name = "Group membership"
-		verbose_name_plural = "Group memberships"
+		verbose_name = _("Group membership")
+		verbose_name_plural = _("Group memberships")
 
 	def can_read(self) -> bool:
 		return self.role in (self.ROLE_READ, self.ROLE_READ_WRITE)

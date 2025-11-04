@@ -2,6 +2,7 @@
 
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class AccessLog(models.Model):
@@ -35,6 +36,8 @@ class AccessLog(models.Model):
 
 	class Meta:
 		ordering = ("-timestamp",)
+		verbose_name = _("Access log")
+		verbose_name_plural = _("Access logs")
 
 	def __str__(self) -> str:
 		return f"{self.timestamp} {self.user} {self.action} {self.password}"
