@@ -7,7 +7,7 @@ from passwords.utils.crypto import decrypt_password, encrypt_password
 
 class Password(models.Model):
 	title = models.CharField(max_length=255)
-	url = models.CharField(max_length=255, null=True)
+	url = models.CharField(max_length=255, null=True, blank=True)
 	password = models.TextField()
 	note = models.TextField(blank=True, null=True)
 	in_trash = models.BooleanField(default=False)
