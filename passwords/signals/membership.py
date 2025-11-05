@@ -3,7 +3,7 @@
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from passwords.models.password_group import GroupMembership
+from passwords.models.group_membership import GroupMembership
 from passwords.services.membership import sync_user_django_groups
 
 

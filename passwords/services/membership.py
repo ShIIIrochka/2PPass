@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from passwords.models.password_group import GroupMembership
+from passwords.models.group_membership import GroupMembership
 from passwords.signals.utils import get_or_create_group
 
 
@@ -14,8 +14,6 @@ def sync_user_django_groups(user):
 	if user.group_memberships.filter(
 		role=GroupMembership.ROLE_READ_WRITE
 	).exists():
-		print("rw")
 		user.groups.add(group_rw)
 	elif user.group_memberships.filter(role=GroupMembership.ROLE_READ).exists():
-		print("r")
 		user.groups.add(group_read)

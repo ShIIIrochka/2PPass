@@ -11,7 +11,8 @@ from passwords.admin.trash.admin import TrashAdmin
 
 from passwords.models.access_log import AccessLog
 from passwords.models.password import Password, PasswordInTrash
-from passwords.models.password_group import GroupMembership, PasswordGroup
+from passwords.models.group_membership import GroupMembership
+from passwords.models.storage import PasswordGroup
 from passwords.models.tag import Tag
 
 admin.site.site_header = '2PPass'

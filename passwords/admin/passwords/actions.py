@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 

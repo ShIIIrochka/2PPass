@@ -3,26 +3,13 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
-from passwords.models.password_group import GroupMembership
+from passwords.models.group_membership import GroupMembership
 
 
 class GroupMembershipInline(admin.TabularInline):
-	"""Встраиваемая таблица для отображения участий пользователя в группе паролей."""
-
 	model = GroupMembership
 	extra = 0
-	raw_id_fields = ("user",)
+	autocomplete_fields = ("user", "role")
 	show_change_link = True
-
 	verbose_name = _("Member")
 	verbose_name_plural = _("Members")
-
-	ordering = ("user__username",)
-
-	def get_queryset(self, request):
-		"""Возвращает queryset с подгруженными связанными записями пользователей."""
-		qs = super().get_queryset(request)
-		try:
-			return qs.select_related("user")
-		except Exception:
-			return qs

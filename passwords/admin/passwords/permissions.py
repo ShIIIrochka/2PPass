@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from passwords.models.password_group import GroupMembership
+from passwords.models.group_membership import GroupMembership
 
 
 def can_view_password(user, obj=None):
