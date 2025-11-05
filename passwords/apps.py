@@ -8,4 +8,4 @@ class PasswordConfig(AppConfig):
 	verbose_name = "Passwords"
 
 	def ready(self):
-		pass
+		from . import signals  # noqa
