@@ -14,8 +14,8 @@ def sync_user_django_groups(user):
 	if user.group_memberships.filter(
 		role=GroupMembership.ROLE_READ_WRITE
 	).exists():
-		print("fdfd")
+		print("rw")
 		user.groups.add(group_rw)
 	elif user.group_memberships.filter(role=GroupMembership.ROLE_READ).exists():
-		print("---")
+		print("r")
 		user.groups.add(group_read)

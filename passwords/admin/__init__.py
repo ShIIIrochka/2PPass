@@ -2,6 +2,7 @@
 
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.models import Group
 
 from passwords.admin.user import user_admin_site
 from passwords.admin.passwords.admin import PasswordAdmin
@@ -23,6 +24,7 @@ admin.site.register(PasswordInTrash, TrashAdmin)
 admin.site.register(PasswordGroup, PasswordGroupAdmin)
 admin.site.register(Password, PasswordAdmin)
 admin.site.register(Tag)
+# admin.site.unregister(Group)
 
 user_admin_site.register(Password, PasswordAdmin)
 user_admin_site.register(Tag)
