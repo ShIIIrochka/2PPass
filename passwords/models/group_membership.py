@@ -32,8 +32,8 @@ class GroupMembership(models.Model):
 
 	class Meta:
 		unique_together = ("user", "group")
-		verbose_name = _("Group membership")
-		verbose_name_plural = _("Group memberships")
+		verbose_name = _("storage member")
+		verbose_name_plural = _("Storage members")
 
 	def can_read(self) -> bool:
 		"""Проверка разрешений роли на чтение."""
@@ -50,6 +50,9 @@ class GroupMembership(models.Model):
 		return self.role.permissions.filter(
 			codename__in=["change_password", "add_password"]
 		).exists()
+
+	def get_role_display(self) -> str:
+		return self.role.name if self.role else _("No role")
 
 	def __str__(self) -> str:
 		try:
