@@ -44,17 +44,8 @@ ALLOWED_HOSTS = [os.getenv("APP_HOST", "0.0.0.0")]
 # Application definition
 AUTH_USER_MODEL = "auth.User"
 
-JAZZMIN_SETTINGS = {
-	"site_title": "2PPass",
-	"site_header": "2PPass",
-	"welcome_sign": "Welcome to 2PPass",
-	"show_sidebar": True,
-	"order_with_respect_to": ["passwords", "users"],
-}
-
-
 INSTALLED_APPS = [
-	"frontend",
+	# "jazzmin",
 	"django.contrib.admin",
 	"django.contrib.auth",
 	"django.contrib.contenttypes",
