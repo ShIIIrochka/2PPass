@@ -13,8 +13,8 @@ from passwords.models.password import Password, PasswordInTrash
 from passwords.models.password_group import GroupMembership, PasswordGroup
 from passwords.models.tag import Tag
 
-admin.site.site_header = _('2PPass — Corporate Password Manager')
-admin.site.site_title = _('2PPass')
+admin.site.site_header = '2PPass'
+admin.site.site_title = '2PPass'
 admin.site.index_title = _('Home')
 
 admin.site.register(GroupMembership)

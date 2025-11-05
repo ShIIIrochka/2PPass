@@ -18,8 +18,8 @@ class UserAdminAuthenticationForm(AdminAuthenticationForm):
 class UserAdminSite(AdminSite):
 	"""Админ-сайт для обычных пользователей."""
 
-	site_header = _("2PPass — Corporate Password Manager")
-	site_title = _("2PPass")
+	site_header = "2PPass"
+	site_title = "2PPass"
 	index_title = _("Home")
 	login_form = UserAdminAuthenticationForm
 
