@@ -4,11 +4,11 @@ from typing import Any
 
 from django.conf import settings
 from django.contrib import admin
+from django.template.loader import render_to_string
 from django.urls import path
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_protect
-from django.template.loader import render_to_string
 
 from passwords.admin.passwords.actions import log_access
 from passwords.admin.passwords.permissions import (

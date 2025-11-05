@@ -3,7 +3,9 @@ import itertools
 import json
 import logging
 import urllib.parse
-from typing import Any, Callable, Dict, List, Optional, Union
+
+from collections.abc import Callable
+from typing import Any
 
 from django.conf import settings
 from django.contrib.admin import ListFilter
@@ -36,6 +38,7 @@ from ..utils import (
 	order_with_respect_to,
 )
 
+
 User = get_user_model()
 register = Library()
 logger = logging.getLogger(__name__)
@@ -44,7 +47,7 @@ logger = logging.getLogger(__name__)
 @register.simple_tag(takes_context=True)
 def get_side_menu(
 	context: Context, using: str = "available_apps"
-) -> List[Dict]:
+) -> list[dict]:
 	"""
 	Get the list of apps and models to render out in the side menu and on the dashboard page
 
@@ -112,7 +115,7 @@ def get_side_menu(
 		]
 		model_ordering = list(
 			filter(
-				lambda x: x.lower().startswith("{}.".format(app_label))
+				lambda x: x.lower().startswith(f"{app_label}.")
 				or x.lower() in custom_link_names,
 				ordering,
 			)
@@ -140,7 +143,7 @@ def get_side_menu(
 
 
 @register.simple_tag
-def get_top_menu(user: AbstractUser, admin_site: str = "admin") -> List[Dict]:
+def get_top_menu(user: AbstractUser, admin_site: str = "admin") -> list[dict]:
 	"""
 	Produce the menu for the top nav bar
 	"""
@@ -155,7 +158,7 @@ def get_top_menu(user: AbstractUser, admin_site: str = "admin") -> List[Dict]:
 
 
 @register.simple_tag
-def get_user_menu(user: AbstractUser, admin_site: str = "admin") -> List[Dict]:
+def get_user_menu(user: AbstractUser, admin_site: str = "admin") -> list[dict]:
 	"""
 	Produce the menu for the user dropdown
 	"""
@@ -170,7 +173,7 @@ def get_user_menu(user: AbstractUser, admin_site: str = "admin") -> List[Dict]:
 
 
 @register.simple_tag
-def get_jazzmin_settings(request: WSGIRequest) -> Dict:
+def get_jazzmin_settings(request: WSGIRequest) -> dict:
 	"""
 	Get Jazzmin settings, update any defaults from the request, and return
 	"""
@@ -190,7 +193,7 @@ def get_jazzmin_settings(request: WSGIRequest) -> Dict:
 
 
 @register.simple_tag
-def get_jazzmin_ui_tweaks() -> Dict:
+def get_jazzmin_ui_tweaks() -> dict:
 	"""
 	Return Jazzmin ui tweaks
 	"""
@@ -208,9 +211,7 @@ def get_user_avatar(user: AbstractUser) -> str:
 	"""
 	no_avatar = static("vendor/adminlte/img/user2-160x160.jpg")
 	options = get_settings()
-	avatar_field_name: Optional[Union[str, Callable]] = options.get(
-		"user_avatar"
-	)
+	avatar_field_name: str | Callable | None = options.get("user_avatar")
 
 	if not avatar_field_name:
 		return no_avatar
@@ -261,11 +262,11 @@ def jazzmin_paginator_number(change_list: ChangeList, i: int) -> SafeText:
         """.format(link=link, disabled="disabled" if link == "#" else "")
 
 	if current_page:
-		html_str += """
+		html_str += f"""
         <li class="page-item active">
-            <a class="page-link" href="javascript:void(0);" data-dt-idx="3" tabindex="0">{num}</a>
+            <a class="page-link" href="javascript:void(0);" data-dt-idx="3" tabindex="0">{i}</a>
         </li>
-        """.format(num=i)
+        """
 	elif spacer:
 		html_str += """
         <li class="page-item">
@@ -275,11 +276,11 @@ def jazzmin_paginator_number(change_list: ChangeList, i: int) -> SafeText:
 	else:
 		query_string = change_list.get_query_string({PAGE_VAR: i})
 		end = "end" if end else ""
-		html_str += """
+		html_str += f"""
             <li class="page-item">
-            <a href="{query_string}" class="page-link {end}" data-dt-idx="3" tabindex="0">{num}</a>
+            <a href="{query_string}" class="page-link {end}" data-dt-idx="3" tabindex="0">{i}</a>
             </li>
-        """.format(num=i, query_string=query_string, end=end)
+        """
 
 	if end:
 		link = (
@@ -297,7 +298,7 @@ def jazzmin_paginator_number(change_list: ChangeList, i: int) -> SafeText:
 
 
 @register.simple_tag
-def admin_extra_filters(cl: ChangeList) -> Dict:
+def admin_extra_filters(cl: ChangeList) -> dict:
 	"""
 	Return the dict of used filters which is not included in list_filters form
 	"""
@@ -361,9 +362,7 @@ def jazzmin_list_filter(cl: ChangeList, spec: ListFilter) -> SafeText:
 
 
 @register.simple_tag
-def jazzy_admin_url(
-	value: Union[str, ModelBase], admin_site: str = "admin"
-) -> str:
+def jazzy_admin_url(value: str | ModelBase, admin_site: str = "admin") -> str:
 	"""
 	Get the admin url for a given object
 	"""
@@ -371,7 +370,7 @@ def jazzy_admin_url(
 
 
 @register.filter
-def has_jazzmin_setting(settings: Dict[str, Any], key: str) -> bool:
+def has_jazzmin_setting(settings: dict[str, Any], key: str) -> bool:
 	return key in settings and settings[key] is not None
 
 
@@ -385,8 +384,8 @@ def has_fieldsets(adminform: AdminForm) -> bool:
 
 @register.simple_tag
 def get_sections(
-	admin_form: AdminForm, inline_admin_formsets: List[InlineAdminFormSet]
-) -> List[Union[Fieldset, InlineAdminFormSet]]:
+	admin_form: AdminForm, inline_admin_formsets: list[InlineAdminFormSet]
+) -> list[Fieldset | InlineAdminFormSet]:
 	"""
 	Get and sort all of the sections that need rendering out in a change form
 	"""
@@ -425,7 +424,7 @@ def debug(value: Any) -> Any:
 
 
 @register.filter
-def as_json(value: Union[List, Dict]) -> str:
+def as_json(value: list | dict) -> str:
 	"""
 	Take the given item and dump it out as JSON
 	"""
@@ -443,9 +442,7 @@ def get_changeform_template(adminform: AdminForm) -> str:
 	inlines = adminform.model_admin.inlines
 	has_inlines = inlines and len(inlines) > 0
 	model = adminform.model_admin.model
-	model_name = "{}.{}".format(
-		model._meta.app_label, model._meta.model_name
-	).lower()
+	model_name = f"{model._meta.app_label}.{model._meta.model_name}".lower()
 
 	changeform_format = options.get("changeform_format", "")
 	if model_name in options.get("changeform_format_overrides", {}):
@@ -479,12 +476,12 @@ def can_view_self(perms: PermWrapper) -> bool:
 	"""
 	Determines whether a user has sufficient permissions to view its own profile
 	"""
-	view_perm = "view_{}".format(User._meta.model_name)
+	view_perm = f"view_{User._meta.model_name}"
 	return perms[User._meta.app_label][view_perm]
 
 
 @register.simple_tag
-def header_class(header: Dict, forloop: Dict) -> str:
+def header_class(header: dict, forloop: dict) -> str:
 	"""
 	Adds CSS classes to header HTML element depending on its attributes
 	"""
@@ -524,27 +521,27 @@ def app_is_installed(app: str) -> bool:
 
 
 @register.simple_tag
-def action_message_to_list(action: LogEntry) -> List[Dict]:  # noqa: C901
+def action_message_to_list(action: LogEntry) -> list[dict]:  # noqa: C901
 	"""
 	Retrieves a formatted list with all actions taken by a user given a log entry object
 	"""
 	messages = []
 
-	def added(x: str) -> Dict:
+	def added(x: str) -> dict:
 		return {
 			"msg": x,
 			"icon": "plus-circle",
 			"colour": "success",
 		}
 
-	def changed(x: str) -> Dict:
+	def changed(x: str) -> dict:
 		return {
 			"msg": x,
 			"icon": "edit",
 			"colour": "blue",
 		}
 
-	def deleted(x: str) -> Dict:
+	def deleted(x: str) -> dict:
 		return {
 			"msg": x,
 			"icon": "trash",
@@ -628,7 +625,7 @@ def style_bold_first_word(message: str) -> SafeText:
 	if not len(message_words):
 		return ""
 
-	message_words[0] = "<strong>{}</strong>".format(message_words[0])
+	message_words[0] = f"<strong>{message_words[0]}</strong>"
 
 	message = " ".join(list(message_words))
 
