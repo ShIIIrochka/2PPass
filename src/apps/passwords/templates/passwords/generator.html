@@ -1,0 +1,117 @@
+{% extends 'users/base.html' %}
+{% load static %}
+{% block title %}Генерация пароля · 2PPass{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'passwords/generator.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-header">
+        <h1>Генерация пароля</h1>
+    </div>
+    <div class="panel-body">
+        <form class="form" id="generator-form">
+            <div class="form-row">
+                <label for="length">Длина пароля</label>
+                <input type="number" id="length" name="length" min="1" max="128" value="16" required>
+            </div>
+            
+            <div class="form-row">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="use_uppercase" name="use_uppercase" checked>
+                    <span>Заглавные буквы (A-Z)</span>
+                </label>
+            </div>
+            
+            <div class="form-row">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="use_lowercase" name="use_lowercase" checked>
+                    <span>Строчные буквы (a-z)</span>
+                </label>
+            </div>
+            
+            <div class="form-row">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="use_digits" name="use_digits" checked>
+                    <span>Цифры (0-9)</span>
+                </label>
+            </div>
+            
+            <div class="form-row">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="use_special" name="use_special" checked>
+                    <span>Специальные символы (!@#$%...)</span>
+                </label>
+            </div>
+            
+            <div class="form-row">
+                <label for="exclude_chars">Исключить символы (необязательно)</label>
+                <input type="text" id="exclude_chars" name="exclude_chars" placeholder="Например: 0OIl1">
+            </div>
+            
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Сгенерировать</button>
+            </div>
+            
+            <div class="form-message" id="form-message"></div>
+        </form>
+    </div>
+</section>
+
+<section class="panel" id="result-panel" style="display: none;">
+    <div class="panel-header">
+        <h2>Сгенерированный пароль</h2>
+    </div>
+    <div class="panel-body">
+        <div class="password-result">
+            <div class="password-display" id="password-display"></div>
+            <div class="password-actions">
+                <button class="btn btn-primary" id="copy-btn">Копировать</button>
+                <button class="btn" id="save-to-vault-btn">Сохранить в хранилище</button>
+                <button class="btn" id="regenerate-btn">Сгенерировать снова</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="panel" id="save-panel" style="display: none;">
+    <div class="panel-header">
+        <h2>Сохранить в хранилище</h2>
+    </div>
+    <div class="panel-body">
+        <form class="form" id="save-form">
+            <div class="form-row">
+                <label for="save-vault">Хранилище</label>
+                <select id="save-vault" name="vault_id" required>
+                    <option value="">Выберите хранилище...</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="save-title">Название</label>
+                <input type="text" id="save-title" name="title" required placeholder="Например: Gmail">
+            </div>
+            <div class="form-row">
+                <label for="save-login">Логин</label>
+                <input type="text" id="save-login" name="login" required placeholder="email@example.com">
+            </div>
+            <div class="form-row">
+                <label for="save-url">URL (необязательно)</label>
+                <input type="url" id="save-url" name="url" placeholder="https://example.com">
+            </div>
+            <div class="form-row">
+                <label for="save-notes">Заметки (необязательно)</label>
+                <textarea id="save-notes" name="notes" rows="3" placeholder="Дополнительная информация"></textarea>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Сохранить</button>
+                <button class="btn" type="button" id="cancel-save-btn">Отмена</button>
+            </div>
+            <div class="form-message" id="save-message"></div>
+        </form>
+    </div>
+</section>
+
+<script src="{% static 'passwords/generator.js' %}"></script>
+{% endblock %}

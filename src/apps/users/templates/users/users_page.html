@@ -1,0 +1,189 @@
+{% extends 'users/base.html' %}
+{% block title %}Пользователи · 2PPass{% endblock %}
+
+{% block content %}
+<script>
+    window.currentUserRole = '{{ user_role }}';
+    window.isAdmin = {{ is_admin|yesno:"true,false" }};
+    window.isManager = {{ is_manager|yesno:"true,false" }};
+</script>
+<section class="panel">
+    <div class="panel-header">
+        <h1>Пользователи</h1>
+        <button class="btn" id="refresh-users">Обновить</button>
+    </div>
+    <div class="panel-body">
+        <div class="filters-section">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Роль:</label>
+                    <select id="filter-role" class="filter-select">
+                        <option value="">Все</option>
+                        <option value="admin">Администратор</option>
+                        <option value="manager">Менеджер</option>
+                        <option value="employee">Сотрудник</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Статус:</label>
+                    <select id="filter-status" class="filter-select">
+                        <option value="">Все</option>
+                        <option value="active">Активен</option>
+                        <option value="inactive">Отключен</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Сортировка:</label>
+                    <select id="filter-ordering" class="filter-select">
+                        <option value="id">ID</option>
+                        <option value="email">Email</option>
+                        <option value="first_name">Имя</option>
+                        <option value="last_name">Фамилия</option>
+                        <option value="role">Роль</option>
+                        <option value="is_active">Статус</option>
+                        <option value="-date_joined">Дата регистрации (новые)</option>
+                        <option value="date_joined">Дата регистрации (старые)</option>
+                    </select>
+                </div>
+                <button class="btn" id="clear-filters">Сбросить</button>
+            </div>
+        </div>
+        <table class="table" id="users-table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Имя</th>
+                    <th>Роль</th>
+                    <th>Статус</th>
+                    {% if is_admin or is_manager %}
+                    <th>Действия</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div class="empty-state" id="users-empty">Пользователей пока нет</div>
+    </div>
+</section>
+
+{% if is_admin or is_manager %}
+<section class="panel">
+    <div class="panel-header">
+        <h2>Добавить пользователя</h2>
+    </div>
+    <div class="panel-body">
+        <form class="form" id="create-user-form">
+            <div class="form-row">
+                <label>Email</label>
+                <input type="email" name="email" required>
+            </div>
+            <div class="form-row">
+                <label>Имя</label>
+                <input type="text" name="first_name">
+            </div>
+            <div class="form-row">
+                <label>Фамилия</label>
+                <input type="text" name="last_name">
+            </div>
+            <div class="form-row">
+                <label>Телефон</label>
+                <input type="text" name="phone">
+            </div>
+            <div class="form-row">
+                <label>Роль</label>
+                <select name="role" id="role-select">
+                    <option value="employee">Сотрудник</option>
+                    {% if is_admin %}
+                    <option value="manager">Менеджер</option>
+                    <option value="admin">Администратор</option>
+                    {% endif %}
+                </select>
+            </div>
+            <div class="form-row">
+                <label>Пароль (необязательно)</label>
+                <input type="text" name="password">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Создать</button>
+            </div>
+            <div class="form-message" id="form-message"></div>
+        </form>
+    </div>
+</section>
+{% endif %}
+
+<div class="modal" id="confirm-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <h3 id="modal-title">Подтверждение действия</h3>
+        <p id="modal-message"></p>
+        <div class="modal-actions">
+            <button class="btn" id="modal-cancel">Отмена</button>
+            <button class="btn btn-danger" id="modal-confirm">Подтвердить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="user-detail-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content modal-large">
+        <h3 id="user-detail-title">Информация о пользователе</h3>
+        <div id="user-detail-content"></div>
+        <div class="modal-actions">
+            <button class="btn" id="user-detail-close">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="edit-user-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content modal-large">
+        <h3 id="edit-user-title">Редактировать пользователя</h3>
+        <form class="form" id="edit-user-form">
+            <div class="form-row">
+                <label for="edit-email">Email</label>
+                <input type="email" id="edit-email" name="email" required>
+            </div>
+            <div class="form-row">
+                <label for="edit-first-name">Имя</label>
+                <input type="text" id="edit-first-name" name="first_name">
+            </div>
+            <div class="form-row">
+                <label for="edit-last-name">Фамилия</label>
+                <input type="text" id="edit-last-name" name="last_name">
+            </div>
+            <div class="form-row">
+                <label for="edit-phone">Телефон</label>
+                <input type="text" id="edit-phone" name="phone">
+            </div>
+            <div class="form-row">
+                <label for="edit-role">Роль</label>
+                <select id="edit-role" name="role">
+                    <option value="employee">Сотрудник</option>
+                    {% if is_admin %}
+                    <option value="manager">Менеджер</option>
+                    <option value="admin">Администратор</option>
+                    {% endif %}
+                </select>
+            </div>
+            <div class="form-row">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="edit-is-active" name="is_active">
+                    <span>Активен</span>
+                </label>
+            </div>
+            <div class="form-row">
+                <label for="edit-groups">Группы</label>
+                <select id="edit-groups" name="groups" multiple size="5" style="min-height: 100px;">
+                </select>
+                <small style="color: #6b7280; font-size: 12px;">Удерживайте Ctrl (Cmd на Mac) для выбора нескольких групп</small>
+            </div>
+            <div class="form-message" id="edit-message"></div>
+            <div class="modal-actions">
+                <button class="btn" type="button" id="edit-user-cancel">Отмена</button>
+                <button class="btn btn-primary" type="submit">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
