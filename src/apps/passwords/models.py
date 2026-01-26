@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from apps.vaults.models import Vault
 
+from apps.passwords.fields import EncryptedTextField
+
 User = get_user_model()
 
 
@@ -9,7 +11,7 @@ class PasswordEntry(models.Model):
     vault = models.ForeignKey(Vault, on_delete=models.CASCADE, related_name='password_entries')
     title = models.CharField(max_length=200)
     login = models.CharField(max_length=200)
-    password = models.TextField()
+    password = EncryptedTextField()
     url = models.URLField(max_length=500, blank=True)
     notes = models.TextField(max_length=2000, blank=True)
     tags = models.JSONField(default=list, blank=True)
@@ -36,7 +38,7 @@ class PasswordVersion(models.Model):
     password_entry = models.ForeignKey(PasswordEntry, on_delete=models.CASCADE, related_name='versions')
     version = models.CharField(max_length=50)
     login = models.CharField(max_length=200)
-    password = models.TextField()
+    password = EncryptedTextField()
     url = models.URLField(max_length=500, blank=True)
     notes = models.TextField(blank=True)
     tags = models.JSONField(default=list, blank=True)

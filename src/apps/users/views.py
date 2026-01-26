@@ -1,10 +1,16 @@
 from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.contrib.auth.models import Group
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
 from django.shortcuts import redirect
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
 from rest_framework import mixins, viewsets, status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes, parser_classes
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.parsers import JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -25,12 +31,17 @@ User = get_user_model()
 
 
 class UserViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
-    permission_classes = [IsAdminOrManager]
+    permission_classes = [IsAuthenticated]
     queryset = User.objects.all().order_by('id')
 
     def get_queryset(self):
+        from apps.roles.utils.permissions import has_permission
         queryset = super().get_queryset()
         user = self.request.user
+
+        can_view_users = user.role in (UserRole.ADMIN, UserRole.MANAGER) or has_permission(user, 'users', 'view')
+        if not can_view_users:
+            return User.objects.none()
         
         if user.role == UserRole.MANAGER:
             queryset = queryset.filter(role=UserRole.EMPLOYEE)
@@ -125,16 +136,24 @@ class UsersPageView(LoginRequiredMixin, TemplateView):
         if not request.user.is_authenticated:
             return redirect('/login/')
         
-        if request.user.role not in (UserRole.ADMIN, UserRole.MANAGER):
+        from apps.roles.utils.permissions import has_permission
+        can_view_users = request.user.role in (UserRole.ADMIN, UserRole.MANAGER) or has_permission(request.user, 'users', 'view')
+        if not can_view_users:
             return redirect('/login/')
         
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        from apps.roles.utils.permissions import has_permission
         context['user_role'] = self.request.user.role
         context['is_admin'] = self.request.user.role == UserRole.ADMIN
         context['is_manager'] = self.request.user.role == UserRole.MANAGER
+        context['can_view_users'] = context['is_admin'] or context['is_manager'] or has_permission(self.request.user, 'users', 'view')
+        context['can_create_users'] = context['is_admin'] or context['is_manager'] or has_permission(self.request.user, 'users', 'create')
+        context['can_edit_users'] = context['is_admin'] or context['is_manager'] or has_permission(self.request.user, 'users', 'edit')
+        context['can_delete_users'] = context['is_admin'] or context['is_manager'] or has_permission(self.request.user, 'users', 'delete')
+        context['can_manage_users'] = context['can_create_users'] or context['can_edit_users'] or context['can_delete_users']
         return context
 
 
@@ -144,8 +163,8 @@ class LoginPageView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if not request.user.password_changed:
-                return redirect('password_change')
-            return redirect('users_page')
+                return redirect('users_web:password_change')
+            return redirect('vaults_web:vaults_page')
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -154,16 +173,46 @@ class PasswordChangePageView(LoginRequiredMixin, TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.password_changed:
-            return redirect('users_page')
+            return redirect('vaults_web:vaults_page')
         return super().dispatch(request, *args, **kwargs)
 
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
+@ensure_csrf_cookie
 def login_view(request):
-    serializer = LoginSerializer(data=request.data)
+    import json
+
+    data = None
+    
+    try:
+        if request.body:
+            body_str = request.body.decode('utf-8')
+            if body_str.strip():
+                data = json.loads(body_str)
+    except (json.JSONDecodeError, UnicodeDecodeError, AttributeError) as e:
+        return JsonResponse(
+            {'detail': 'Неверный формат JSON.'},
+            status=400
+        )
+    
+    if not data or not isinstance(data, dict):
+        return JsonResponse(
+            {'detail': 'Учетные данные не были предоставлены.'},
+            status=400
+        )
+    
+    if not data.get('email') or not data.get('password'):
+        return JsonResponse(
+            {'detail': 'Учетные данные не были предоставлены.'},
+            status=400
+        )
+    
+    serializer = LoginSerializer(data=data)
+    
     if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse(
+            serializer.errors,
+            status=400
+        )
     
     email = serializer.validated_data['email']
     password = serializer.validated_data['password']
@@ -171,26 +220,26 @@ def login_view(request):
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
-        return Response(
+        return JsonResponse(
             {'error': 'Неверный email или пароль.'},
-            status=status.HTTP_401_UNAUTHORIZED
+            status=401
         )
     
     if not user.is_active:
-        return Response(
+        return JsonResponse(
             {'error': 'Учетная запись деактивирована.'},
-            status=status.HTTP_403_FORBIDDEN
+            status=403
         )
     
     if not user.check_password(password):
-        return Response(
+        return JsonResponse(
             {'error': 'Неверный email или пароль.'},
-            status=status.HTTP_401_UNAUTHORIZED
+            status=401
         )
     
     login(request, user)
     
-    return Response({
+    return JsonResponse({
         'id': user.id,
         'email': user.email,
         'password_changed': user.password_changed,
@@ -261,8 +310,15 @@ def profile_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAdminOrManager])
+@permission_classes([IsAuthenticated])
 def deactivate_user_view(request, user_id):
+    from apps.roles.utils.permissions import has_permission
+    if request.user.role not in (UserRole.ADMIN, UserRole.MANAGER) and not has_permission(request.user, 'users', 'delete'):
+        return Response(
+            {'error': 'Недостаточно прав.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
     try:
         target_user = User.objects.get(id=user_id)
     except User.DoesNotExist:
@@ -303,17 +359,77 @@ def deactivate_user_view(request, user_id):
     return Response({'message': 'Доступ успешно отозван.'})
 
 
-@api_view(['GET'])
-@permission_classes([IsAdminOrManager])
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def get_groups_view(request):
-    groups = Group.objects.all().order_by('name')
-    groups_list = [{'id': g.id, 'name': g.name} for g in groups]
-    return Response({'groups': groups_list})
+    from apps.roles.utils.permissions import has_permission
+    user = request.user
+
+    if request.method == 'GET':
+        can_list_groups = user.role in (UserRole.ADMIN, UserRole.MANAGER) or has_permission(user, 'users', 'view') or has_permission(user, 'vaults', 'create') or has_permission(user, 'vaults', 'edit')
+        if not can_list_groups:
+            return Response(
+                {'error': 'Недостаточно прав.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        groups = Group.objects.all().order_by('name')
+        groups_list = [{'id': g.id, 'name': g.name} for g in groups]
+        return Response({'groups': groups_list})
+
+    can_create_group = user.role in (UserRole.ADMIN, UserRole.MANAGER) or has_permission(user, 'users', 'edit') or has_permission(user, 'vaults', 'create')
+    if not can_create_group:
+        return Response(
+            {'error': 'Недостаточно прав.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    name = (request.data.get('name') or '').strip()
+    if not name:
+        return Response(
+            {'error': 'Название группы обязательно.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if Group.objects.filter(name=name).exists():
+        return Response(
+            {'error': 'Группа с таким названием уже существует.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    group = Group.objects.create(name=name)
+
+    log_action(
+        user=user,
+        action='group_created',
+        resource_type='group',
+        resource_id=group.id,
+        details={
+            'name': group.name,
+        },
+        request=request,
+    )
+
+    return Response(
+        {
+            'id': group.id,
+            'name': group.name,
+            'message': 'Группа успешно создана.',
+        },
+        status=status.HTTP_201_CREATED
+    )
 
 
 @api_view(['POST'])
-@permission_classes([IsAdminOrManager])
+@permission_classes([IsAuthenticated])
 def delete_user_view(request, user_id):
+    from apps.roles.utils.permissions import has_permission
+    if request.user.role not in (UserRole.ADMIN, UserRole.MANAGER) and not has_permission(request.user, 'users', 'delete'):
+        return Response(
+            {'error': 'Недостаточно прав.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
     try:
         target_user = User.objects.get(id=user_id)
     except User.DoesNotExist:

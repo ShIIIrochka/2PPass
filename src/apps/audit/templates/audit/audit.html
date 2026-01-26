@@ -1,0 +1,364 @@
+{% extends 'users/base.html' %}
+{% load static %}
+{% block title %}Журнал аудита · 2PPass{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'users/users.css' %}">
+<style>
+    .audit-details {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 16px;
+        margin-top: 12px;
+    }
+    .audit-details pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-size: 13px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-header">
+        <h1>Журнал аудита</h1>
+        <div>
+            <button class="btn" id="export-audit">Экспорт</button>
+            <button class="btn" id="refresh-audit">Обновить</button>
+        </div>
+    </div>
+    <div class="panel-body">
+        <div class="filters-section">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Пользователь:</label>
+                    <select id="filter-user" class="filter-select">
+                        <option value="">Все пользователи</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Действие:</label>
+                    <select id="filter-action" class="filter-select">
+                        <option value="">Все действия</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Тип ресурса:</label>
+                    <select id="filter-resource-type" class="filter-select">
+                        <option value="">Все типы</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Дата от:</label>
+                    <input type="date" id="filter-date-from" class="filter-select">
+                </div>
+                <div class="filter-group">
+                    <label>Дата до:</label>
+                    <input type="date" id="filter-date-to" class="filter-select">
+                </div>
+                <button class="btn" id="clear-filters">Сбросить</button>
+            </div>
+        </div>
+        <table class="table" id="audit-table">
+            <thead>
+                <tr>
+                    <th>Дата и время</th>
+                    <th>Пользователь</th>
+                    <th>Действие</th>
+                    <th>Тип ресурса</th>
+                    <th>ID ресурса</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div class="empty-state" id="audit-empty">Записей в журнале нет</div>
+    </div>
+</section>
+
+<div class="modal" id="audit-detail-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content modal-large">
+        <h3>Детали события</h3>
+        <div id="audit-detail-content"></div>
+        <div class="modal-actions">
+            <button class="btn" onclick="hideAuditDetailModal()">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies) {
+        const trimmed = cookie.trim();
+        if (trimmed.startsWith(`${name}=`)) {
+            return decodeURIComponent(trimmed.substring(name.length + 1));
+        }
+    }
+    return '';
+}
+
+const auditTableBody = document.querySelector('#audit-table tbody');
+const auditEmpty = document.querySelector('#audit-empty');
+const refreshButton = document.querySelector('#refresh-audit');
+const exportButton = document.querySelector('#export-audit');
+const filterUser = document.querySelector('#filter-user');
+const filterAction = document.querySelector('#filter-action');
+const filterResourceType = document.querySelector('#filter-resource-type');
+const filterDateFrom = document.querySelector('#filter-date-from');
+const filterDateTo = document.querySelector('#filter-date-to');
+const clearFiltersBtn = document.querySelector('#clear-filters');
+const apiUrl = '/api/audit/';
+
+let currentFilters = {
+    user_id: '',
+    action: '',
+    resource_type: '',
+    date_from: '',
+    date_to: '',
+};
+
+function buildApiUrl() {
+    const params = new URLSearchParams();
+    if (currentFilters.user_id) params.append('user_id', currentFilters.user_id);
+    if (currentFilters.action) params.append('action', currentFilters.action);
+    if (currentFilters.resource_type) params.append('resource_type', currentFilters.resource_type);
+    if (currentFilters.date_from) params.append('date_from', currentFilters.date_from);
+    if (currentFilters.date_to) params.append('date_to', currentFilters.date_to);
+    
+    const queryString = params.toString();
+    return queryString ? `${apiUrl}?${queryString}` : apiUrl;
+}
+
+function renderAudit(data) {
+    const logs = data.logs || [];
+    const users = data.users || [];
+    const actions = data.actions || [];
+    const resourceTypes = data.resource_types || [];
+    
+    if (filterUser) {
+        filterUser.innerHTML = '<option value="">Все пользователи</option>';
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.email;
+            if (currentFilters.user_id == user.id) {
+                option.selected = true;
+            }
+            filterUser.appendChild(option);
+        });
+    }
+    
+    if (filterAction) {
+        filterAction.innerHTML = '<option value="">Все действия</option>';
+        actions.forEach(action => {
+            const option = document.createElement('option');
+            option.value = action;
+            option.textContent = action;
+            if (currentFilters.action === action) {
+                option.selected = true;
+            }
+            filterAction.appendChild(option);
+        });
+    }
+    
+    if (filterResourceType) {
+        filterResourceType.innerHTML = '<option value="">Все типы</option>';
+        resourceTypes.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            if (currentFilters.resource_type === type) {
+                option.selected = true;
+            }
+            filterResourceType.appendChild(option);
+        });
+    }
+    
+    auditTableBody.innerHTML = '';
+    if (!logs.length) {
+        auditEmpty.classList.remove('hidden');
+        return;
+    }
+    auditEmpty.classList.add('hidden');
+
+    logs.forEach((log) => {
+        const row = document.createElement('tr');
+        const timestamp = new Date(log.timestamp).toLocaleString('ru-RU');
+        
+        const timestampCell = document.createElement('td');
+        timestampCell.setAttribute('data-label', 'Дата и время');
+        timestampCell.textContent = timestamp;
+        
+        const userCell = document.createElement('td');
+        userCell.setAttribute('data-label', 'Пользователь');
+        userCell.textContent = log.user;
+        
+        const actionCell = document.createElement('td');
+        actionCell.setAttribute('data-label', 'Действие');
+        actionCell.textContent = log.action;
+        
+        const resourceTypeCell = document.createElement('td');
+        resourceTypeCell.setAttribute('data-label', 'Тип ресурса');
+        resourceTypeCell.textContent = log.resource_type;
+        
+        const resourceIdCell = document.createElement('td');
+        resourceIdCell.setAttribute('data-label', 'ID ресурса');
+        resourceIdCell.textContent = log.resource_id || '-';
+        
+        const actionsCell = document.createElement('td');
+        actionsCell.className = 'table-actions';
+        actionsCell.setAttribute('data-label', 'Действия');
+        
+        const detailBtn = document.createElement('button');
+        detailBtn.className = 'btn btn-small';
+        detailBtn.textContent = 'Детали';
+        detailBtn.onclick = () => showAuditDetail(log.id);
+        
+        actionsCell.appendChild(detailBtn);
+        
+        row.appendChild(timestampCell);
+        row.appendChild(userCell);
+        row.appendChild(actionCell);
+        row.appendChild(resourceTypeCell);
+        row.appendChild(resourceIdCell);
+        row.appendChild(actionsCell);
+        
+        auditTableBody.appendChild(row);
+    });
+}
+
+async function loadAudit() {
+    const url = buildApiUrl();
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) {
+        const payload = await response.json();
+        const error = payload.error || 'Ошибка загрузки журнала аудита.';
+        alert(error);
+        return;
+    }
+    const payload = await response.json();
+    renderAudit(payload);
+}
+
+async function showAuditDetail(logId) {
+    const response = await fetch(`${apiUrl}${logId}/`, { credentials: 'include' });
+    if (!response.ok) {
+        const payload = await response.json();
+        alert(payload.error || 'Ошибка загрузки деталей.');
+        return;
+    }
+    
+    const log = await response.json();
+    const modal = document.querySelector('#audit-detail-modal');
+    const content = document.querySelector('#audit-detail-content');
+    
+    const timestamp = new Date(log.timestamp).toLocaleString('ru-RU');
+    const detailsJson = JSON.stringify(log.details, null, 2);
+    
+    content.innerHTML = `
+        <div class="audit-details">
+            <p><strong>Пользователь:</strong> ${log.user}</p>
+            <p><strong>Действие:</strong> ${log.action}</p>
+            <p><strong>Тип ресурса:</strong> ${log.resource_type}</p>
+            <p><strong>ID ресурса:</strong> ${log.resource_id || '-'}</p>
+            <p><strong>Дата и время:</strong> ${timestamp}</p>
+            <p><strong>IP адрес:</strong> ${log.ip_address || '-'}</p>
+            <p><strong>User Agent:</strong> ${log.user_agent || '-'}</p>
+            <p><strong>Детали:</strong></p>
+            <pre>${detailsJson}</pre>
+        </div>
+    `;
+    
+    modal.classList.add('is-open');
+}
+
+function hideAuditDetailModal() {
+    const modal = document.querySelector('#audit-detail-modal');
+    if (modal) {
+        modal.classList.remove('is-open');
+    }
+}
+
+function exportAudit() {
+    const baseUrl = buildApiUrl();
+    const exportUrl = baseUrl.replace('/api/audit/', '/api/audit/export/');
+    const separator = exportUrl.includes('?') ? '&' : '?';
+    const url = exportUrl + separator + 'format=csv';
+    window.location.href = url;
+}
+
+if (refreshButton) {
+    refreshButton.addEventListener('click', loadAudit);
+}
+
+if (exportButton) {
+    exportButton.addEventListener('click', exportAudit);
+}
+
+if (filterUser) {
+    filterUser.addEventListener('change', () => {
+        currentFilters.user_id = filterUser.value;
+        loadAudit();
+    });
+}
+
+if (filterAction) {
+    filterAction.addEventListener('change', () => {
+        currentFilters.action = filterAction.value;
+        loadAudit();
+    });
+}
+
+if (filterResourceType) {
+    filterResourceType.addEventListener('change', () => {
+        currentFilters.resource_type = filterResourceType.value;
+        loadAudit();
+    });
+}
+
+if (filterDateFrom) {
+    filterDateFrom.addEventListener('change', () => {
+        currentFilters.date_from = filterDateFrom.value;
+        loadAudit();
+    });
+}
+
+if (filterDateTo) {
+    filterDateTo.addEventListener('change', () => {
+        currentFilters.date_to = filterDateTo.value;
+        loadAudit();
+    });
+}
+
+if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', () => {
+        currentFilters = { user_id: '', action: '', resource_type: '', date_from: '', date_to: '' };
+        if (filterUser) filterUser.value = '';
+        if (filterAction) filterAction.value = '';
+        if (filterResourceType) filterResourceType.value = '';
+        if (filterDateFrom) filterDateFrom.value = '';
+        if (filterDateTo) filterDateTo.value = '';
+        loadAudit();
+    });
+}
+
+const auditDetailModal = document.querySelector('#audit-detail-modal');
+if (auditDetailModal) {
+    auditDetailModal.addEventListener('click', (e) => {
+        if (e.target === auditDetailModal || e.target.classList.contains('modal-overlay')) {
+            hideAuditDetailModal();
+        }
+    });
+}
+
+window.hideAuditDetailModal = hideAuditDetailModal;
+
+loadAudit().catch(() => {
+    alert('Ошибка загрузки журнала аудита.');
+});
+</script>
+{% endblock %}

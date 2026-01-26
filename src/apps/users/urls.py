@@ -1,4 +1,5 @@
 from django.urls import path, include
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.routers import DefaultRouter
 
 from apps.users.views import (
@@ -18,7 +19,6 @@ router = DefaultRouter()
 router.register(r'', UserViewSet, basename='users')
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('login/', login_view, name='login'),
     path('logout/', logout_view, name='logout'),
     path('password-change/', password_change_view, name='password-change'),
@@ -26,4 +26,5 @@ urlpatterns = [
     path('groups/', get_groups_view, name='groups'),
     path('<int:user_id>/deactivate/', deactivate_user_view, name='deactivate-user'),
     path('<int:user_id>/delete/', delete_user_view, name='delete-user'),
+    path('', include(router.urls)),  # Router в конец
 ]

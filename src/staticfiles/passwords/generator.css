@@ -32,12 +32,19 @@
     text-align: center;
     letter-spacing: 1px;
     user-select: all;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
 }
 
 .password-actions {
     display: flex;
     gap: 12px;
     justify-content: flex-end;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 100%;
 }
 
 .form-row textarea {
@@ -47,4 +54,22 @@
     font-size: 14px;
     font-family: inherit;
     resize: vertical;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .password-display {
+        font-size: 16px;
+        padding: 12px;
+    }
+
+    .password-actions {
+        flex-direction: column;
+    }
+
+    .password-actions > * {
+        width: 100%;
+    }
 }

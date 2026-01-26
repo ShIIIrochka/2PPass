@@ -1,0 +1,237 @@
+{% extends 'users/base.html' %}
+{% load static %}
+{% block title %}Корзина · 2PPass{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vaults/vaults.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-header">
+        <h1>Корзина</h1>
+        <div>
+            <a href="/vaults/" class="btn">← Назад к хранилищам</a>
+            <button class="btn" id="refresh-trash">Обновить</button>
+        </div>
+    </div>
+    <div class="panel-body">
+        <div class="filters-section">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Хранилище:</label>
+                    <select id="filter-vault" class="filter-select">
+                        <option value="">Все хранилища</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Дата от:</label>
+                    <input type="date" id="filter-date-from" class="filter-select">
+                </div>
+                <div class="filter-group">
+                    <label>Дата до:</label>
+                    <input type="date" id="filter-date-to" class="filter-select">
+                </div>
+                <button class="btn" id="clear-filters">Сбросить</button>
+            </div>
+        </div>
+        <table class="table" id="trash-table">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Логин</th>
+                    <th>Хранилище</th>
+                    <th>Удалён</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div class="empty-state" id="trash-empty">Корзина пуста</div>
+    </div>
+</section>
+
+<script>
+function getCookie(name) {
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies) {
+        const trimmed = cookie.trim();
+        if (trimmed.startsWith(`${name}=`)) {
+            return decodeURIComponent(trimmed.substring(name.length + 1));
+        }
+    }
+    return '';
+}
+
+const trashTableBody = document.querySelector('#trash-table tbody');
+const trashEmpty = document.querySelector('#trash-empty');
+const refreshButton = document.querySelector('#refresh-trash');
+const filterVault = document.querySelector('#filter-vault');
+const filterDateFrom = document.querySelector('#filter-date-from');
+const filterDateTo = document.querySelector('#filter-date-to');
+const clearFiltersBtn = document.querySelector('#clear-filters');
+const apiUrl = '/api/vaults/trash/';
+
+let currentFilters = {
+    vault_id: '',
+    date_from: '',
+    date_to: '',
+};
+
+function buildApiUrl() {
+    const params = new URLSearchParams();
+    if (currentFilters.vault_id) params.append('vault_id', currentFilters.vault_id);
+    if (currentFilters.date_from) params.append('date_from', currentFilters.date_from);
+    if (currentFilters.date_to) params.append('date_to', currentFilters.date_to);
+    
+    const queryString = params.toString();
+    return queryString ? `${apiUrl}?${queryString}` : apiUrl;
+}
+
+function renderTrash(data) {
+    const passwords = data.passwords || [];
+    const vaults = data.vaults || [];
+    
+    if (filterVault) {
+        filterVault.innerHTML = '<option value="">Все хранилища</option>';
+        vaults.forEach(vault => {
+            const option = document.createElement('option');
+            option.value = vault.id;
+            option.textContent = vault.name;
+            if (currentFilters.vault_id == vault.id) {
+                option.selected = true;
+            }
+            filterVault.appendChild(option);
+        });
+    }
+    
+    trashTableBody.innerHTML = '';
+    if (!passwords.length) {
+        trashEmpty.classList.remove('hidden');
+        return;
+    }
+    trashEmpty.classList.add('hidden');
+
+    passwords.forEach((pwd) => {
+        const row = document.createElement('tr');
+        const deletedDate = new Date(pwd.deleted_at).toLocaleString('ru-RU');
+        
+        const titleCell = document.createElement('td');
+        titleCell.setAttribute('data-label', 'Название');
+        titleCell.textContent = pwd.title;
+        
+        const loginCell = document.createElement('td');
+        loginCell.setAttribute('data-label', 'Логин');
+        loginCell.textContent = pwd.login;
+        
+        const vaultCell = document.createElement('td');
+        vaultCell.setAttribute('data-label', 'Хранилище');
+        const vaultLink = document.createElement('a');
+        vaultLink.href = `/vaults/${pwd.vault_id}/`;
+        vaultLink.textContent = pwd.vault_name;
+        vaultCell.appendChild(vaultLink);
+        
+        const deletedCell = document.createElement('td');
+        deletedCell.setAttribute('data-label', 'Удалён');
+        deletedCell.textContent = deletedDate;
+        
+        const actionsCell = document.createElement('td');
+        actionsCell.className = 'table-actions';
+        actionsCell.setAttribute('data-label', 'Действия');
+        
+        const restoreBtn = document.createElement('button');
+        restoreBtn.className = 'btn btn-small';
+        restoreBtn.textContent = 'Восстановить';
+        restoreBtn.onclick = () => confirmRestorePassword(pwd.id, pwd.title);
+        
+        actionsCell.appendChild(restoreBtn);
+        
+        row.appendChild(titleCell);
+        row.appendChild(loginCell);
+        row.appendChild(vaultCell);
+        row.appendChild(deletedCell);
+        row.appendChild(actionsCell);
+        
+        trashTableBody.appendChild(row);
+    });
+}
+
+async function loadTrash() {
+    const url = buildApiUrl();
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) {
+        const payload = await response.json();
+        const error = payload.error || 'Ошибка загрузки корзины.';
+        alert(error);
+        return;
+    }
+    const payload = await response.json();
+    renderTrash(payload);
+}
+
+async function restorePassword(passwordId) {
+    const response = await fetch(`/api/vaults/trash/${passwordId}/restore/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+    });
+    
+    const payload = await response.json();
+    if (!response.ok) {
+        const message = payload.error || payload.detail || 'Ошибка восстановления пароля.';
+        alert(message);
+        return;
+    }
+    
+    alert('Пароль успешно восстановлен. Он появится в хранилище.');
+    await loadTrash();
+}
+
+function confirmRestorePassword(passwordId, title) {
+    if (confirm(`Восстановить пароль "${title}"?`)) {
+        restorePassword(passwordId);
+    }
+}
+
+if (refreshButton) {
+    refreshButton.addEventListener('click', loadTrash);
+}
+
+if (filterVault) {
+    filterVault.addEventListener('change', () => {
+        currentFilters.vault_id = filterVault.value;
+        loadTrash();
+    });
+}
+
+if (filterDateFrom) {
+    filterDateFrom.addEventListener('change', () => {
+        currentFilters.date_from = filterDateFrom.value;
+        loadTrash();
+    });
+}
+
+if (filterDateTo) {
+    filterDateTo.addEventListener('change', () => {
+        currentFilters.date_to = filterDateTo.value;
+        loadTrash();
+    });
+}
+
+if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', () => {
+        currentFilters = { vault_id: '', date_from: '', date_to: '' };
+        if (filterVault) filterVault.value = '';
+        if (filterDateFrom) filterDateFrom.value = '';
+        if (filterDateTo) filterDateTo.value = '';
+        loadTrash();
+    });
+}
+
+loadTrash().catch(() => {
+    alert('Ошибка загрузки корзины.');
+});
+</script>
+{% endblock %}

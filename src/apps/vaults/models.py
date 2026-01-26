@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 
 User = get_user_model()
 
@@ -20,6 +21,18 @@ class VaultAccess(models.Model):
     class Meta:
         db_table = 'vault_accesses'
         unique_together = [['vault', 'user']]
+
+
+class VaultGroupAccess(models.Model):
+    vault = models.ForeignKey('Vault', on_delete=models.CASCADE, related_name='group_access_list')
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='vault_accesses')
+    access_level = models.CharField(max_length=10, choices=VaultAccess.ACCESS_LEVEL_CHOICES)
+    granted_at = models.DateTimeField(auto_now_add=True)
+    granted_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='granted_group_accesses')
+
+    class Meta:
+        db_table = 'vault_group_accesses'
+        unique_together = [['vault', 'group']]
 
 
 class Vault(models.Model):

@@ -5,6 +5,8 @@ const form = document.querySelector('#create-user-form');
 const formMessage = document.querySelector('#form-message');
 
 const apiUrl = '/api/users/';
+const vaultsApiUrl = '/api/vaults/';
+const rolesApiUrl = '/api/roles/';
 
 function getCookie(name) {
     const cookies = document.cookie.split(';');
@@ -15,6 +17,177 @@ function getCookie(name) {
         }
     }
     return '';
+}
+
+let allVaults = [];
+let customRoles = [];
+
+async function loadVaults() {
+    try {
+        const response = await fetch(vaultsApiUrl, { credentials: 'include' });
+        if (!response.ok) return;
+        const payload = await response.json();
+        allVaults = payload.vaults || [];
+    } catch (err) {
+        console.error('Ошибка загрузки хранилищ:', err);
+    }
+}
+
+async function loadCustomRoles() {
+    try {
+        const response = await fetch(rolesApiUrl, { credentials: 'include' });
+        if (!response.ok) return;
+        const payload = await response.json();
+        customRoles = payload.custom_roles || [];
+    } catch (err) {
+        console.error('Ошибка загрузки ролей:', err);
+    }
+}
+
+function buildRoleChoiceOptions(selectEl) {
+    if (!selectEl) return;
+    selectEl.innerHTML = '';
+
+    const systemGroup = document.createElement('optgroup');
+    systemGroup.label = 'Системные роли';
+
+    const employeeOption = document.createElement('option');
+    employeeOption.value = 'employee';
+    employeeOption.textContent = 'Сотрудник';
+    systemGroup.appendChild(employeeOption);
+
+    if (window.isAdmin === true) {
+        const managerOption = document.createElement('option');
+        managerOption.value = 'manager';
+        managerOption.textContent = 'Менеджер';
+        systemGroup.appendChild(managerOption);
+
+        const adminOption = document.createElement('option');
+        adminOption.value = 'admin';
+        adminOption.textContent = 'Администратор';
+        systemGroup.appendChild(adminOption);
+    }
+
+    selectEl.appendChild(systemGroup);
+
+    if (customRoles.length && window.isAdmin === true) {
+        const customGroup = document.createElement('optgroup');
+        customGroup.label = 'Кастомные роли';
+        customRoles.forEach(role => {
+            const option = document.createElement('option');
+            option.value = `custom:${role.id}`;
+            option.textContent = role.name;
+            customGroup.appendChild(option);
+        });
+        selectEl.appendChild(customGroup);
+    }
+}
+
+function setRoleChoiceValue(selectEl, userRole, customRoleId) {
+    if (!selectEl) return;
+    if (customRoleId) {
+        selectEl.value = `custom:${customRoleId}`;
+        return;
+    }
+    selectEl.value = userRole || 'employee';
+}
+
+function normalizeRoleChoice(value) {
+    const selected = (value || '').toString();
+    if (selected.startsWith('custom:')) {
+        const id = parseInt(selected.replace('custom:', ''), 10);
+        return { role: 'employee', custom_role: Number.isFinite(id) ? id : null };
+    }
+    return { role: selected || 'employee', custom_role: null };
+}
+
+function createVaultAccessRow(container, initial) {
+    const row = document.createElement('div');
+    row.className = 'inline-row';
+    row.style.display = 'flex';
+    row.style.gap = '8px';
+    row.style.marginBottom = '8px';
+    row.style.flexWrap = 'wrap';
+
+    const vaultSelect = document.createElement('select');
+    vaultSelect.className = 'filter-select';
+    vaultSelect.style.minWidth = '220px';
+
+    const emptyOption = document.createElement('option');
+    emptyOption.value = '';
+    emptyOption.textContent = 'Выберите хранилище';
+    vaultSelect.appendChild(emptyOption);
+
+    allVaults.forEach(vault => {
+        const option = document.createElement('option');
+        option.value = vault.id;
+        option.textContent = vault.name;
+        vaultSelect.appendChild(option);
+    });
+
+    const levelSelect = document.createElement('select');
+    levelSelect.className = 'filter-select';
+    levelSelect.style.minWidth = '180px';
+    [
+        { value: 'view', label: 'Просмотр' },
+        { value: 'edit', label: 'Редактирование' },
+        { value: 'admin', label: 'Администратор' },
+    ].forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.value;
+        option.textContent = item.label;
+        levelSelect.appendChild(option);
+    });
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn btn-small btn-danger';
+    removeBtn.textContent = 'Удалить';
+    removeBtn.addEventListener('click', () => row.remove());
+
+    if (initial) {
+        if (initial.vault_id) vaultSelect.value = String(initial.vault_id);
+        if (initial.access_level) levelSelect.value = initial.access_level;
+    }
+
+    row.appendChild(vaultSelect);
+    row.appendChild(levelSelect);
+    row.appendChild(removeBtn);
+
+    container.appendChild(row);
+}
+
+function collectVaultAccesses(container) {
+    const result = [];
+    const rows = container ? Array.from(container.querySelectorAll('.inline-row')) : [];
+    rows.forEach(row => {
+        const selects = row.querySelectorAll('select');
+        if (selects.length < 2) return;
+        const vaultId = selects[0].value;
+        const accessLevel = selects[1].value;
+        if (!vaultId) return;
+        result.push({ vault_id: parseInt(vaultId), access_level: accessLevel });
+    });
+    return result;
+}
+
+function addTableLabels(table) {
+    const thead = table.querySelector('thead');
+    if (!thead) return;
+    
+    const headers = Array.from(thead.querySelectorAll('th'));
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        cells.forEach((cell, index) => {
+            if (headers[index] && !cell.hasAttribute('data-label')) {
+                cell.setAttribute('data-label', headers[index].textContent.trim());
+            }
+        });
+    });
 }
 
 function renderUsers(users) {
@@ -28,23 +201,29 @@ function renderUsers(users) {
     const currentUserRole = window.currentUserRole || '';
     const isAdmin = window.isAdmin === true;
     const isManager = window.isManager === true;
+    const canEditUsers = window.canEditUsers === true;
+    const canDeleteUsers = window.canDeleteUsers === true;
     
     users.forEach((user) => {
         const row = document.createElement('tr');
         const actionsCell = document.createElement('td');
         actionsCell.className = 'table-actions';
+        actionsCell.setAttribute('data-label', 'Действия');
         
-        const canManage = isAdmin || isManager;
-        const canManageThisUser = isAdmin || (isManager && user.role === 'employee');
+        const canManage = isAdmin || isManager || canEditUsers || canDeleteUsers;
+        const canEditThisUser = isAdmin || (isManager && user.role === 'employee') || canEditUsers;
+        const canDeleteThisUser = isAdmin || (isManager && user.role === 'employee') || canDeleteUsers;
         
-        if (canManage && canManageThisUser) {
-            const editBtn = document.createElement('button');
-            editBtn.className = 'btn btn-small';
-            editBtn.textContent = 'Редактировать';
-            editBtn.onclick = () => showEditUserModal(user.id);
-            actionsCell.appendChild(editBtn);
+        if (canManage) {
+            if (canEditThisUser) {
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-small';
+                editBtn.textContent = 'Редактировать';
+                editBtn.onclick = () => showEditUserModal(user.id);
+                actionsCell.appendChild(editBtn);
+            }
             
-            if (user.is_active) {
+            if (canDeleteThisUser && user.is_active) {
                 const deactivateBtn = document.createElement('button');
                 deactivateBtn.className = 'btn btn-small';
                 deactivateBtn.textContent = 'Отключить доступ';
@@ -56,28 +235,57 @@ function renderUsers(users) {
                 actionsCell.appendChild(deactivateBtn);
             }
             
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'btn btn-small btn-danger';
-            deleteBtn.textContent = 'Удалить';
-            deleteBtn.onclick = () => showConfirmModal(
-                'Удалить пользователя',
-                `Вы уверены, что хотите удалить пользователя ${user.email}? Это действие нельзя отменить.`,
-                () => deleteUser(user.id)
-            );
-            actionsCell.appendChild(deleteBtn);
+            if (canDeleteThisUser) {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-small btn-danger';
+                deleteBtn.textContent = 'Удалить';
+                deleteBtn.onclick = () => showConfirmModal(
+                    'Удалить пользователя',
+                    `Вы уверены, что хотите удалить пользователя ${user.email}? Это действие нельзя отменить.`,
+                    () => deleteUser(user.id)
+                );
+                actionsCell.appendChild(deleteBtn);
+            }
         } else {
             actionsCell.textContent = '-';
         }
         
-        row.innerHTML = `
-            <td class="clickable-cell" onclick="showUserDetail(${user.id})">${user.email || '-'}</td>
-            <td class="clickable-cell" onclick="showUserDetail(${user.id})">${[user.first_name, user.last_name].filter(Boolean).join(' ') || '-'}</td>
-            <td class="clickable-cell" onclick="showUserDetail(${user.id})">${user.role}</td>
-            <td class="clickable-cell" onclick="showUserDetail(${user.id})">${user.is_active ? 'Активен' : 'Отключен'}</td>
-        `;
+        const emailCell = document.createElement('td');
+        emailCell.className = 'clickable-cell';
+        emailCell.setAttribute('data-label', 'Email');
+        emailCell.onclick = () => showUserDetail(user.id);
+        emailCell.textContent = user.email || '-';
+        
+        const nameCell = document.createElement('td');
+        nameCell.className = 'clickable-cell';
+        nameCell.setAttribute('data-label', 'Имя');
+        nameCell.onclick = () => showUserDetail(user.id);
+        nameCell.textContent = [user.first_name, user.last_name].filter(Boolean).join(' ') || '-';
+        
+        const roleCell = document.createElement('td');
+        roleCell.className = 'clickable-cell';
+        roleCell.setAttribute('data-label', 'Роль');
+        roleCell.onclick = () => showUserDetail(user.id);
+        roleCell.textContent = user.role;
+        
+        const statusCell = document.createElement('td');
+        statusCell.className = 'clickable-cell';
+        statusCell.setAttribute('data-label', 'Статус');
+        statusCell.onclick = () => showUserDetail(user.id);
+        statusCell.textContent = user.is_active ? 'Активен' : 'Отключен';
+        
+        row.appendChild(emailCell);
+        row.appendChild(nameCell);
+        row.appendChild(roleCell);
+        row.appendChild(statusCell);
         row.appendChild(actionsCell);
         usersTableBody.appendChild(row);
     });
+    
+    const table = document.querySelector('#users-table');
+    if (table) {
+        addTableLabels(table);
+    }
 }
 
 let currentFilters = {
@@ -110,6 +318,29 @@ async function loadUsers() {
 }
 
 async function createUser(formData) {
+    const roleChoiceSelect = document.querySelector('#role-choice');
+    const { role, custom_role } = normalizeRoleChoice(roleChoiceSelect ? roleChoiceSelect.value : formData.get('role_choice'));
+
+    const payloadToSend = {
+        email: formData.get('email'),
+        first_name: formData.get('first_name') || '',
+        last_name: formData.get('last_name') || '',
+        phone: formData.get('phone') || '',
+        role,
+    };
+
+    const password = formData.get('password');
+    if (password) {
+        payloadToSend.password = password;
+    }
+
+    const createVaultAccessesContainer = document.querySelector('#create-vault-accesses');
+    payloadToSend.vault_accesses = collectVaultAccesses(createVaultAccessesContainer);
+
+    if (window.isAdmin === true) {
+        payloadToSend.custom_role = custom_role;
+    }
+
     const response = await fetch(apiUrl, {
         method: 'POST',
         credentials: 'include',
@@ -117,7 +348,7 @@ async function createUser(formData) {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken'),
         },
-        body: JSON.stringify(Object.fromEntries(formData.entries())),
+        body: JSON.stringify(payloadToSend),
     });
 
     const payload = await response.json();
@@ -409,6 +640,10 @@ async function loadGroups() {
 
 async function showEditUserModal(userId) {
     currentEditUserId = userId;
+
+    if (!allVaults.length) {
+        await loadVaults();
+    }
     
     const response = await fetch(`${apiUrl}${userId}/`, { credentials: 'include' });
     if (!response.ok) {
@@ -425,9 +660,12 @@ async function showEditUserModal(userId) {
     document.querySelector('#edit-first-name').value = user.first_name || '';
     document.querySelector('#edit-last-name').value = user.last_name || '';
     document.querySelector('#edit-phone').value = user.phone || '';
-    document.querySelector('#edit-role').value = user.role || 'employee';
     document.querySelector('#edit-is-active').checked = user.is_active || false;
-    
+
+    const editRoleChoice = document.querySelector('#edit-role-choice');
+    buildRoleChoiceOptions(editRoleChoice);
+    setRoleChoiceValue(editRoleChoice, user.role, user.custom_role);
+
     const groupsSelect = document.querySelector('#edit-groups');
     groupsSelect.innerHTML = '';
     allGroups.forEach(group => {
@@ -442,6 +680,19 @@ async function showEditUserModal(userId) {
     
     editMessage.textContent = '';
     editMessage.classList.remove('is-error', 'is-success');
+
+    const editVaultAccessesContainer = document.querySelector('#edit-vault-accesses');
+    if (editVaultAccessesContainer) {
+        editVaultAccessesContainer.innerHTML = '';
+        const vaultAccesses = user.vault_accesses || [];
+        vaultAccesses.forEach(access => {
+            createVaultAccessRow(editVaultAccessesContainer, {
+                vault_id: access.vault_id,
+                access_level: access.access_level,
+            });
+        });
+    }
+
     editUserModal.classList.add('is-open');
 }
 
@@ -454,15 +705,25 @@ function hideEditUserModal() {
 }
 
 async function updateUser(formData) {
+    const editRoleChoice = document.querySelector('#edit-role-choice');
+    const { role, custom_role } = normalizeRoleChoice(editRoleChoice ? editRoleChoice.value : formData.get('role_choice'));
+
     const data = {
         email: formData.get('email'),
         first_name: formData.get('first_name') || '',
         last_name: formData.get('last_name') || '',
         phone: formData.get('phone') || '',
-        role: formData.get('role'),
+        role,
         is_active: formData.get('is_active') === 'on',
         groups: Array.from(formData.getAll('groups')).map(id => parseInt(id)),
     };
+
+    const editVaultAccessesContainer = document.querySelector('#edit-vault-accesses');
+    data.vault_accesses = collectVaultAccesses(editVaultAccessesContainer);
+
+    if (window.isAdmin === true) {
+        data.custom_role = custom_role;
+    }
     
     const response = await fetch(`${apiUrl}${currentEditUserId}/`, {
         method: 'PATCH',
@@ -518,6 +779,28 @@ if (editUserModal) {
 }
 
 loadGroups();
+loadCustomRoles().then(() => {
+    buildRoleChoiceOptions(document.querySelector('#role-choice'));
+});
+loadVaults().then(() => {
+    const createVaultAccessesContainer = document.querySelector('#create-vault-accesses');
+    const addCreateVaultAccessBtn = document.querySelector('#add-create-vault-access');
+    if (addCreateVaultAccessBtn && createVaultAccessesContainer) {
+        addCreateVaultAccessBtn.addEventListener('click', () => createVaultAccessRow(createVaultAccessesContainer));
+    }
+
+    const editVaultAccessesContainer = document.querySelector('#edit-vault-accesses');
+    const addEditVaultAccessBtn = document.querySelector('#add-edit-vault-access');
+    if (addEditVaultAccessBtn && editVaultAccessesContainer) {
+        addEditVaultAccessBtn.addEventListener('click', () => createVaultAccessRow(editVaultAccessesContainer));
+    }
+});
+
+const roleChoiceSelect = document.querySelector('#role-choice');
+if (roleChoiceSelect) {
+    buildRoleChoiceOptions(roleChoiceSelect);
+}
+
 loadUsers().catch(() => {
     formMessage.textContent = 'Ошибка загрузки пользователей.';
     formMessage.classList.add('is-error');

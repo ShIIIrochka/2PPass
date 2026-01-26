@@ -1,0 +1,302 @@
+{% extends 'users/base.html' %}
+{% load static %}
+{% block title %}Роли и права · 2PPass{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'users/users.css' %}">
+<style>
+    .role-card {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+    .role-card.system {
+        border-left: 4px solid #1d4ed8;
+    }
+    .role-card.custom {
+        border-left: 4px solid #15803d;
+    }
+    .permissions-list {
+        margin-top: 12px;
+        font-size: 13px;
+        color: #6b7280;
+    }
+    .permission-item {
+        display: inline-block;
+        background: #ffffff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        margin: 4px 4px 0 0;
+    }
+    .permissions-section {
+        margin-top: 16px;
+        padding: 16px;
+        background: #f8fafc;
+        border-radius: 8px;
+    }
+    .resource-group {
+        margin-bottom: 16px;
+    }
+    .resource-group label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 8px;
+    }
+    .actions-checkboxes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .action-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-header">
+        <h1>Роли и права</h1>
+        <div>
+            <button class="btn" id="refresh-roles">Обновить</button>
+        </div>
+    </div>
+    <div class="panel-body">
+        <h2 style="margin-top: 0;">Стандартные роли</h2>
+        <div id="standard-roles"></div>
+        
+        <h2 style="margin-top: 24px;">Кастомные роли</h2>
+        <div id="custom-roles"></div>
+        <div class="empty-state" id="custom-roles-empty">Кастомных ролей пока нет</div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Создать роль</h2>
+    </div>
+    <div class="panel-body">
+        <form class="form" id="create-role-form">
+            <div class="form-row">
+                <label for="role-name">Название роли</label>
+                <input type="text" id="role-name" name="name" required>
+            </div>
+            <div class="form-row">
+                <label for="role-description">Описание</label>
+                <textarea id="role-description" name="description" rows="3"></textarea>
+            </div>
+            <div class="permissions-section">
+                <h3 style="margin-top: 0;">Разрешения</h3>
+                <div id="permissions-container"></div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Создать роль</button>
+            </div>
+            <div class="form-message" id="role-form-message"></div>
+        </form>
+    </div>
+</section>
+
+<script>
+function getCookie(name) {
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies) {
+        const trimmed = cookie.trim();
+        if (trimmed.startsWith(`${name}=`)) {
+            return decodeURIComponent(trimmed.substring(name.length + 1));
+        }
+    }
+    return '';
+}
+
+const standardRolesDiv = document.querySelector('#standard-roles');
+const customRolesDiv = document.querySelector('#custom-roles');
+const customRolesEmpty = document.querySelector('#custom-roles-empty');
+const refreshButton = document.querySelector('#refresh-roles');
+const createForm = document.querySelector('#create-role-form');
+const permissionsContainer = document.querySelector('#permissions-container');
+const formMessage = document.querySelector('#role-form-message');
+const apiUrl = '/api/roles/';
+
+let availableResources = [];
+
+function renderRole(role, isSystem = false) {
+    const card = document.createElement('div');
+    card.className = `role-card ${isSystem ? 'system' : 'custom'}`;
+    
+    const permissionsHtml = role.permissions && role.permissions.length > 0
+        ? role.permissions.map(p => 
+            `<span class="permission-item">${p.resource}: ${p.actions.join(', ')}</span>`
+          ).join('')
+        : '<span class="permission-item">Нет разрешений</span>';
+    
+    card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>
+                <h3 style="margin: 0 0 8px;">${role.name}</h3>
+                <p style="margin: 0; color: #6b7280;">${role.description || 'Нет описания'}</p>
+                <div class="permissions-list">${permissionsHtml}</div>
+            </div>
+            ${isSystem ? '<span style="color: #1d4ed8; font-size: 12px;">Системная</span>' : ''}
+        </div>
+    `;
+    
+    return card;
+}
+
+function renderRoles(data) {
+    const standardRoles = data.standard_roles || [];
+    const customRoles = data.custom_roles || [];
+    
+    standardRolesDiv.innerHTML = '';
+    standardRoles.forEach(role => {
+        standardRolesDiv.appendChild(renderRole(role, true));
+    });
+    
+    customRolesDiv.innerHTML = '';
+    if (!customRoles.length) {
+        customRolesEmpty.classList.remove('hidden');
+    } else {
+        customRolesEmpty.classList.add('hidden');
+        customRoles.forEach(role => {
+            customRolesDiv.appendChild(renderRole(role, false));
+        });
+    }
+}
+
+function renderPermissionsForm(resources) {
+    permissionsContainer.innerHTML = '';
+    
+    resources.forEach(resource => {
+        const group = document.createElement('div');
+        group.className = 'resource-group';
+        
+        const label = document.createElement('label');
+        label.textContent = resource.name;
+        group.appendChild(label);
+        
+        const checkboxes = document.createElement('div');
+        checkboxes.className = 'actions-checkboxes';
+        
+        resource.actions.forEach(action => {
+            const checkboxDiv = document.createElement('div');
+            checkboxDiv.className = 'action-checkbox';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `perm-${resource.id}-${action}`;
+            checkbox.name = 'permissions';
+            checkbox.value = `${resource.id}:${action}`;
+            checkbox.dataset.resource = resource.id;
+            checkbox.dataset.action = action;
+            
+            const labelEl = document.createElement('label');
+            labelEl.htmlFor = checkbox.id;
+            labelEl.textContent = action;
+            
+            checkboxDiv.appendChild(checkbox);
+            checkboxDiv.appendChild(labelEl);
+            checkboxes.appendChild(checkboxDiv);
+        });
+        
+        group.appendChild(checkboxes);
+        permissionsContainer.appendChild(group);
+    });
+}
+
+async function loadRoles() {
+    const response = await fetch(apiUrl, { credentials: 'include' });
+    if (!response.ok) {
+        const payload = await response.json();
+        alert(payload.error || 'Ошибка загрузки ролей.');
+        return;
+    }
+    const payload = await response.json();
+    renderRoles(payload);
+}
+
+async function loadResources() {
+    const response = await fetch(`${apiUrl}resources/`, { credentials: 'include' });
+    if (!response.ok) {
+        return;
+    }
+    const payload = await response.json();
+    availableResources = payload.resources || [];
+    renderPermissionsForm(availableResources);
+}
+
+async function createRole(formData) {
+    const name = formData.get('name');
+    const description = formData.get('description') || '';
+    
+    const checkboxes = permissionsContainer.querySelectorAll('input[type="checkbox"]:checked');
+    const permissionsMap = {};
+    
+    checkboxes.forEach(checkbox => {
+        const resource = checkbox.dataset.resource;
+        const action = checkbox.dataset.action;
+        if (!permissionsMap[resource]) {
+            permissionsMap[resource] = [];
+        }
+        permissionsMap[resource].push(action);
+    });
+    
+    const permissions = Object.keys(permissionsMap).map(resource => ({
+        resource: resource,
+        actions: permissionsMap[resource],
+    }));
+    
+    const data = {
+        name: name,
+        description: description,
+        permissions: permissions,
+    };
+    
+    const response = await fetch(`${apiUrl}create/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(data),
+    });
+    
+    const payload = await response.json();
+    if (!response.ok) {
+        formMessage.textContent = payload.error || 'Ошибка создания роли.';
+        formMessage.classList.add('is-error');
+        formMessage.classList.remove('is-success');
+        return;
+    }
+    
+    formMessage.classList.remove('is-error');
+    formMessage.classList.add('is-success');
+    formMessage.textContent = payload.message || 'Роль успешно создана.';
+    createForm.reset();
+    await loadRoles();
+}
+
+if (refreshButton) {
+    refreshButton.addEventListener('click', loadRoles);
+}
+
+if (createForm) {
+    createForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        formMessage.textContent = '';
+        formMessage.classList.remove('is-error', 'is-success');
+        const formData = new FormData(createForm);
+        await createRole(formData);
+    });
+}
+
+loadResources();
+loadRoles().catch(() => {
+    alert('Ошибка загрузки ролей.');
+});
+</script>
+{% endblock %}

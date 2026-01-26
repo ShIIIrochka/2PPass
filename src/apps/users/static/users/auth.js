@@ -15,6 +15,17 @@ document.addEventListener('DOMContentLoaded', function() {
         profileForm.addEventListener('submit', handleProfileUpdate);
     }
 
+    function getCookie(name) {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const trimmed = cookie.trim();
+            if (trimmed.startsWith(`${name}=`)) {
+                return decodeURIComponent(trimmed.substring(name.length + 1));
+            }
+        }
+        return '';
+    }
+
     function showMessage(elementId, message, isError = false) {
         const messageEl = document.getElementById(elementId);
         if (!messageEl) return;
@@ -34,32 +45,50 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         hideMessage('loginMessage');
 
-        const formData = new FormData(loginForm);
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const email = loginForm.querySelector('[name=email]').value;
+        const password = loginForm.querySelector('[name=password]').value;
+        const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrfToken = csrfTokenInput ? csrfTokenInput.value : getCookie('csrftoken');
+
+        const requestData = {
+            email: email,
+            password: password,
+        };
+
+        console.log('Sending login request:', { email, password: '***' });
+        console.log('Request data:', JSON.stringify(requestData));
 
         try {
             const response = await fetch('/api/users/login/', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
-                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                    ...(csrfToken && { 'X-CSRFToken': csrfToken }),
                 },
-                body: formData,
+                body: JSON.stringify(requestData),
             });
 
+            console.log('Response status:', response.status);
+            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
             const data = await response.json();
+            console.log('Response data:', data);
 
             if (response.ok) {
                 if (data.password_changed === false) {
-                    window.location.href = '/password-change/';
+                    window.location.href = '/login/password-change/';
                 } else {
-                    window.location.href = '/users/';
+                    window.location.href = '/vaults/';
                 }
             } else {
-                const errorMsg = data.error || data.non_field_errors?.[0] || 'Ошибка входа';
+                const errorMsg = data.detail || data.error || data.non_field_errors?.[0] || 'Ошибка входа';
+                console.error('Login error:', errorMsg, data);
                 showMessage('loginMessage', errorMsg, true);
             }
         } catch (error) {
-            showMessage('loginMessage', 'Ошибка соединения', true);
+            console.error('Login request error:', error);
+            showMessage('loginMessage', 'Ошибка соединения: ' + error.message, true);
         }
     }
 
@@ -68,7 +97,13 @@ document.addEventListener('DOMContentLoaded', function() {
         hideMessage('passwordMessage');
 
         const formData = new FormData(passwordChangeForm);
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrfToken = csrfTokenInput ? csrfTokenInput.value : getCookie('csrftoken');
+
+        if (!csrfToken) {
+            showMessage('passwordMessage', 'Ошибка: CSRF token не найден. Перезагрузите страницу.', true);
+            return;
+        }
 
         try {
             const response = await fetch('/api/users/password-change/', {
@@ -88,6 +123,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     profileSection.classList.remove('hidden');
                 }
                 passwordChangeForm.style.display = 'none';
+                
+                setTimeout(() => {
+                    window.location.href = '/vaults/';
+                }, 2000);
             } else {
                 const errorMsg = data.error || data.old_password?.[0] || data.new_password_confirm?.[0] || 'Ошибка смены пароля';
                 showMessage('passwordMessage', errorMsg, true);

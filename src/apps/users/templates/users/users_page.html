@@ -6,6 +6,9 @@
     window.currentUserRole = '{{ user_role }}';
     window.isAdmin = {{ is_admin|yesno:"true,false" }};
     window.isManager = {{ is_manager|yesno:"true,false" }};
+    window.canCreateUsers = {{ can_create_users|yesno:"true,false" }};
+    window.canEditUsers = {{ can_edit_users|yesno:"true,false" }};
+    window.canDeleteUsers = {{ can_delete_users|yesno:"true,false" }};
 </script>
 <section class="panel">
     <div class="panel-header">
@@ -55,7 +58,7 @@
                     <th>Имя</th>
                     <th>Роль</th>
                     <th>Статус</th>
-                    {% if is_admin or is_manager %}
+                    {% if can_edit_users or can_delete_users %}
                     <th>Действия</th>
                     {% endif %}
                 </tr>
@@ -66,7 +69,7 @@
     </div>
 </section>
 
-{% if is_admin or is_manager %}
+{% if can_create_users %}
 <section class="panel">
     <div class="panel-header">
         <h2>Добавить пользователя</h2>
@@ -91,17 +94,17 @@
             </div>
             <div class="form-row">
                 <label>Роль</label>
-                <select name="role" id="role-select">
-                    <option value="employee">Сотрудник</option>
-                    {% if is_admin %}
-                    <option value="manager">Менеджер</option>
-                    <option value="admin">Администратор</option>
-                    {% endif %}
-                </select>
+                <select name="role_choice" id="role-choice"></select>
             </div>
             <div class="form-row">
                 <label>Пароль (необязательно)</label>
                 <input type="text" name="password">
+            </div>
+            <div class="form-row">
+                <label>Доступы к хранилищам</label>
+                <div id="create-vault-accesses"></div>
+                <button class="btn btn-small" type="button" id="add-create-vault-access">Добавить доступ</button>
+                <small style="color: #6b7280; font-size: 12px;">Выберите хранилище и уровень доступа. Повторы по одному хранилищу будут перезаписаны.</small>
             </div>
             <div class="form-actions">
                 <button class="btn btn-primary" type="submit">Создать</button>
@@ -137,53 +140,58 @@
 
 <div class="modal" id="edit-user-modal">
     <div class="modal-overlay"></div>
-    <div class="modal-content modal-large">
-        <h3 id="edit-user-title">Редактировать пользователя</h3>
-        <form class="form" id="edit-user-form">
-            <div class="form-row">
-                <label for="edit-email">Email</label>
-                <input type="email" id="edit-email" name="email" required>
-            </div>
-            <div class="form-row">
-                <label for="edit-first-name">Имя</label>
-                <input type="text" id="edit-first-name" name="first_name">
-            </div>
-            <div class="form-row">
-                <label for="edit-last-name">Фамилия</label>
-                <input type="text" id="edit-last-name" name="last_name">
-            </div>
-            <div class="form-row">
-                <label for="edit-phone">Телефон</label>
-                <input type="text" id="edit-phone" name="phone">
-            </div>
-            <div class="form-row">
-                <label for="edit-role">Роль</label>
-                <select id="edit-role" name="role">
-                    <option value="employee">Сотрудник</option>
-                    {% if is_admin %}
-                    <option value="manager">Менеджер</option>
-                    <option value="admin">Администратор</option>
-                    {% endif %}
-                </select>
-            </div>
-            <div class="form-row">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="edit-is-active" name="is_active">
-                    <span>Активен</span>
-                </label>
-            </div>
-            <div class="form-row">
-                <label for="edit-groups">Группы</label>
-                <select id="edit-groups" name="groups" multiple size="5" style="min-height: 100px;">
-                </select>
-                <small style="color: #6b7280; font-size: 12px;">Удерживайте Ctrl (Cmd на Mac) для выбора нескольких групп</small>
-            </div>
-            <div class="form-message" id="edit-message"></div>
+    <div class="modal-content modal-large modal-scroll">
+        <div class="modal-content-header">
+            <h3 id="edit-user-title">Редактировать пользователя</h3>
+        </div>
+        <div class="modal-content-body">
+            <form class="form" id="edit-user-form">
+                <div class="form-row">
+                    <label for="edit-email">Email</label>
+                    <input type="email" id="edit-email" name="email" required>
+                </div>
+                <div class="form-row">
+                    <label for="edit-first-name">Имя</label>
+                    <input type="text" id="edit-first-name" name="first_name">
+                </div>
+                <div class="form-row">
+                    <label for="edit-last-name">Фамилия</label>
+                    <input type="text" id="edit-last-name" name="last_name">
+                </div>
+                <div class="form-row">
+                    <label for="edit-phone">Телефон</label>
+                    <input type="text" id="edit-phone" name="phone">
+                </div>
+                <div class="form-row">
+                    <label for="edit-role-choice">Роль</label>
+                    <select id="edit-role-choice" name="role_choice"></select>
+                </div>
+                <div class="form-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="edit-is-active" name="is_active">
+                        <span>Активен</span>
+                    </label>
+                </div>
+                <div class="form-row">
+                    <label for="edit-groups">Группы</label>
+                    <select id="edit-groups" name="groups" multiple size="5" style="min-height: 100px;">
+                    </select>
+                    <small style="color: #6b7280; font-size: 12px;">Удерживайте Ctrl (Cmd на Mac) для выбора нескольких групп</small>
+                </div>
+                <div class="form-row">
+                    <label>Доступы к хранилищам</label>
+                    <div id="edit-vault-accesses"></div>
+                    <button class="btn btn-small" type="button" id="add-edit-vault-access">Добавить доступ</button>
+                </div>
+                <div class="form-message" id="edit-message"></div>
+            </form>
+        </div>
+        <div class="modal-content-footer">
             <div class="modal-actions">
                 <button class="btn" type="button" id="edit-user-cancel">Отмена</button>
-                <button class="btn btn-primary" type="submit">Сохранить</button>
+                <button class="btn btn-primary" type="submit" form="edit-user-form">Сохранить</button>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 {% endblock %}

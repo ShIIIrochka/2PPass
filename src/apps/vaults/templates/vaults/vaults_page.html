@@ -1,0 +1,102 @@
+{% extends 'users/base.html' %}
+{% load static %}
+{% block title %}Хранилища · 2PPass{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vaults/vaults.css' %}">
+{% endblock %}
+
+{% block content %}
+<script>
+    window.canCreateVault = {{ can_create|yesno:"true,false" }};
+</script>
+<section class="panel">
+    <div class="panel-header">
+        <h1>Хранилища</h1>
+        <button class="btn" id="refresh-vaults">Обновить</button>
+    </div>
+    <div class="panel-body">
+        <table class="table" id="vaults-table">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Описание</th>
+                    <th>Теги</th>
+                    <th>Создатель</th>
+                    <th>Уровень доступа</th>
+                    <th>Пользователей</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div class="empty-state" id="vaults-empty">Хранилищ пока нет</div>
+    </div>
+</section>
+
+{% if can_create %}
+<section class="panel">
+    <div class="panel-header">
+        <h2>Создать хранилище</h2>
+    </div>
+    <div class="panel-body">
+        <form class="form" id="create-vault-form">
+            <div class="form-row">
+                <label for="vault-name">Название</label>
+                <input type="text" id="vault-name" name="name" required>
+            </div>
+            <div class="form-row">
+                <label for="vault-description">Описание</label>
+                <textarea id="vault-description" name="description" rows="3"></textarea>
+            </div>
+            <div class="form-row">
+                <label for="vault-tags">Теги (через запятую)</label>
+                <input type="text" id="vault-tags" name="tags" placeholder="Например: финансы, личное">
+            </div>
+            <div class="form-row">
+                <label for="vault-access-level">Уровень доступа для выбранных пользователей</label>
+                <select id="vault-access-level" name="access_level">
+                    <option value="view">Просмотр</option>
+                    <option value="edit" selected>Редактирование</option>
+                    <option value="admin">Администратор</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="vault-users">Пользователи</label>
+                <select id="vault-users" name="users" multiple size="6"></select>
+                <small class="hint">Удерживайте Ctrl (Cmd на Mac) для выбора нескольких пользователей</small>
+            </div>
+            <div class="form-row">
+                <label for="vault-groups">Группы</label>
+                <select id="vault-groups" name="groups" multiple size="6"></select>
+                <small class="hint">Вы можете назначить доступ целым группам пользователей</small>
+                <button class="btn btn-small" type="button" id="create-group-btn">+ Создать группу</button>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Создать</button>
+            </div>
+            <div class="form-message" id="vault-form-message"></div>
+        </form>
+    </div>
+</section>
+{% endif %}
+
+<div class="modal" id="create-group-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <h3>Создать группу</h3>
+        <form class="form" id="create-group-form">
+            <div class="form-row">
+                <label for="group-name">Название</label>
+                <input type="text" id="group-name" name="name" required maxlength="150">
+            </div>
+            <div class="form-message" id="group-form-message"></div>
+            <div class="modal-actions">
+                <button class="btn" type="button" id="create-group-cancel">Отмена</button>
+                <button class="btn btn-primary" type="submit">Создать</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="{% static 'vaults/vaults.js' %}"></script>
+{% endblock %}
