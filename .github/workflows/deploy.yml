@@ -1,0 +1,22 @@
+name: Деплой на dev-сервер
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Деплой на dev сервер
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEV_SERVER_IP }}
+          username: adrian
+          key: ${{ secrets.DEV_ID_RSA }}
+          script: |
+            cd 2ppass
+            git pull
+            sleep 6
+            docker compose down
+            docker compose up -d --build
