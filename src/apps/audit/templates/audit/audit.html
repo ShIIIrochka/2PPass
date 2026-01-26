@@ -283,12 +283,32 @@ function hideAuditDetailModal() {
     }
 }
 
-function exportAudit() {
-    const baseUrl = buildApiUrl();
-    const exportUrl = baseUrl.replace('/api/audit/', '/api/audit/export/');
-    const separator = exportUrl.includes('?') ? '&' : '?';
-    const url = exportUrl + separator + 'format=csv';
-    window.location.href = url;
+async function exportAudit() {
+    const params = new URLSearchParams();
+    if (currentFilters.user_id) params.append('user_id', currentFilters.user_id);
+    if (currentFilters.action) params.append('action', currentFilters.action);
+    if (currentFilters.resource_type) params.append('resource_type', currentFilters.resource_type);
+    if (currentFilters.date_from) params.append('date_from', currentFilters.date_from);
+    if (currentFilters.date_to) params.append('date_to', currentFilters.date_to);
+    params.append('format', 'csv');
+    
+    const url = `/api/audit/export/`;
+    const response = await fetch(url, { credentials: 'include' });
+    
+    if (!response.ok) {
+        alert('Ошибка экспорта данных');
+        return;
+    }
+    
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
 }
 
 if (refreshButton) {

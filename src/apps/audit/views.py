@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework import status
 import json
 import csv
+import io
 from datetime import datetime, timedelta
 
 from apps.audit.models import AuditLog
@@ -219,24 +220,26 @@ def audit_logs_export_view(request):
         return response
     
     else:
-        response = HttpResponse(content_type='text/csv; charset=utf-8')
-        response['Content-Disposition'] = f'attachment; filename="audit_logs_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
-        
-        writer = csv.writer(response)
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
         writer.writerow(['ID', 'Пользователь', 'Действие', 'Тип ресурса', 'ID ресурса', 'Дата и время', 'IP адрес', 'User Agent', 'Детали'])
         
-        for log in logs:
+        logs_list = list(logs)
+        for log in logs_list:
             details_str = json.dumps(log.details, ensure_ascii=False) if log.details else ''
             writer.writerow([
                 log.id,
-                log.user.email,
+                log.user.email if log.user else '',
                 log.action,
                 log.resource_type,
                 log.resource_id,
                 log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
                 str(log.ip_address) if log.ip_address else '',
-                log.user_agent,
+                log.user_agent or '',
                 details_str,
             ])
         
+        csv_content = output.getvalue()
+        response = HttpResponse(csv_content.encode('utf-8-sig'), content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="audit_logs_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
         return response

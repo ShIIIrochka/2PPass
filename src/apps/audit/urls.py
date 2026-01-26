@@ -10,7 +10,6 @@ app_name = 'audit'
 
 urlpatterns = [
     path('', audit_logs_view, name='audit-logs'),
-    path('export', audit_logs_export_view, name='audit-logs-export-noslash'),
     path('export/', audit_logs_export_view, name='audit-logs-export'),
     path('<int:log_id>/', audit_log_detail_view, name='audit-log-detail'),
 ]
